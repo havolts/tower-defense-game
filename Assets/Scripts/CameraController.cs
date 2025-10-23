@@ -50,6 +50,5 @@ public class CameraController : MonoBehaviour
 
 
         transform.position = pos;
-
     }
 }

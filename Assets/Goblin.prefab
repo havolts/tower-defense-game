@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7728686981434580635}
   - component: {fileID: 8173419639980431150}
   - component: {fileID: 4928648808691573035}
+  - component: {fileID: 7927271911939224769}
   m_Layer: 0
   m_Name: Goblin
   m_TagString: Untagged
@@ -125,7 +126,7 @@ MonoBehaviour:
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
-  visibleTargets: []
+  unitStats: {fileID: 11400000, guid: dc3069c6114444510a5496d07c38a4d7, type: 2}
 --- !u!195 &4928648808691573035
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -148,3 +149,16 @@ NavMeshAgent:
   m_BaseOffset: 0.5
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &7927271911939224769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7039230712808824886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f6bdf79772e44f358c50c0f889e7487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stats: {fileID: 11400000, guid: 91fbfdf2a2aff40a7a73d58de9825171, type: 2}

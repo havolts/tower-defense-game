@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Health : MonoBehaviour
 {
-    public HealthStats stats; // assign via Inspector
+    public HealthStats stats;
     float currentHealth;
 
     void Awake()
@@ -11,7 +11,7 @@ public class Health : MonoBehaviour
             currentHealth = stats.maxHealth;
         else
         {
-            currentHealth = 100f; // fallback if none assigned
+            currentHealth = 10f;
             Debug.Log("No Health Stats");
         }
     }
