@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   attackDamage: 5
   attackCooldown: 1
-  attackRange: 5
+  attackRange: 2
   movementSpeed: 10

@@ -7,6 +7,7 @@ public class EnemyUnit : MonoBehaviour
     public LayerMask targetMask;
     public LayerMask obstacleMask;
     public UnitStats unitStats;
+    public Transform fortress;
 
     float viewRadius = 100f;
     float visionAngle = 90f;
@@ -41,6 +42,12 @@ public class EnemyUnit : MonoBehaviour
 
     void Update()
     {
+        if (Time.time >= nextScanTime)
+        {
+            nextScanTime = Time.time + scanInterval;
+            ScanForTargets(); // Reevaluate targets continuously
+        }
+
         RunStateMachine();
     }
 
@@ -49,15 +56,10 @@ public class EnemyUnit : MonoBehaviour
         switch (currentState)
         {
             case UnitState.Idle:
-                // No operation, could add patrol later
+                ChangeState(UnitState.Searching);
                 break;
 
             case UnitState.Searching:
-                if (Time.time >= nextScanTime)
-                {
-                    nextScanTime = Time.time + scanInterval;
-                    ScanForTargets();
-                }
                 if (currentTarget != null)
                     ChangeState(UnitState.Chasing);
                 break;
@@ -72,7 +74,7 @@ public class EnemyUnit : MonoBehaviour
                 MoveToTarget();
 
                 float dist = Vector3.Distance(transform.position, currentTarget.position);
-                if (dist <= unitStats.attackRange)
+                if (currentTarget != fortress && dist <= unitStats.attackRange)
                     ChangeState(UnitState.Attacking);
                 break;
 
@@ -90,7 +92,8 @@ public class EnemyUnit : MonoBehaviour
                     return;
                 }
 
-                AttackTarget();
+                if (currentTarget != fortress)
+                    AttackTarget();
                 break;
         }
     }
@@ -103,37 +106,46 @@ public class EnemyUnit : MonoBehaviour
     void ScanForTargets()
     {
         visibleTargets.Clear();
+
         Collider[] targetsInView = Physics.OverlapSphere(transform.position, viewRadius, targetMask);
 
-        for (int i = 0; i < targetsInView.Length; i++)
+        foreach (var col in targetsInView)
         {
-            Transform target = targetsInView[i].transform;
-            Vector3 dirToTarget = (target.position - transform.position).normalized;
-            if (Vector3.Angle(transform.forward, dirToTarget) < visionAngle / 2)
+            Transform target = col.transform;
+            Vector3 dir = (target.position - transform.position).normalized;
+            float dist = Vector3.Distance(transform.position, target.position);
+
+            if (Vector3.Angle(transform.forward, dir) < visionAngle / 2)
             {
-                float distToTarget = Vector3.Distance(transform.position, target.position);
-                if (!Physics.Raycast(transform.position, dirToTarget, distToTarget, obstacleMask))
+                if (!Physics.Raycast(transform.position, dir, dist, obstacleMask))
                     visibleTargets.Add(target);
             }
         }
 
-        if (visibleTargets.Count > 0)
-        {
-            visibleTargets.Sort((a, b) =>
-                Vector3.Distance(transform.position, a.position)
-                .CompareTo(Vector3.Distance(transform.position, b.position))
-            );
+        visibleTargets.Sort((a, b) =>
+            Vector3.Distance(transform.position, a.position)
+            .CompareTo(Vector3.Distance(transform.position, b.position))
+        );
 
+        if (visibleTargets.Count > 0)
             currentTarget = visibleTargets[0];
-        }
         else
-        {
-            currentTarget = null;
-        }
+            currentTarget = fortress;
     }
 
     void MoveToTarget()
     {
+        if (currentTarget == null) return;
+
+        // If target is fortress, move directly to it
+        if (currentTarget == fortress)
+        {
+            agent.SetDestination(fortress.position);
+            RotateTowards(fortress.position);
+            return;
+        }
+
+        // Otherwise stop at attack range
         Vector3 dir = (currentTarget.position - transform.position).normalized;
         Vector3 destination = currentTarget.position - dir * unitStats.attackRange;
         agent.SetDestination(destination);
