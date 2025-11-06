@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+
+
 public class EnemyUnit : MonoBehaviour
 {
     public LayerMask targetMask;
@@ -21,6 +23,10 @@ public class EnemyUnit : MonoBehaviour
 
     float lastAttackTime;
 
+    public int skillPointReward = 1; 
+    private bool rewardGranted;                       
+    private Health health;                            
+
     enum UnitState
     {
         Idle,
@@ -37,8 +43,50 @@ public class EnemyUnit : MonoBehaviour
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
 
+        health = GetComponent<Health>();
+        if (health != null)
+            health.Died += OnDied;
+
         ChangeState(UnitState.Searching);
     }
+
+
+    void OnDestroy()
+    {
+        if (health != null)
+            health.Died -= OnDied;
+    }
+
+    private void OnDied()
+    {
+        if (rewardGranted) return;
+        rewardGranted = true;
+        Debug.Log($"[EnemyUnit:{name}] Died ? award {skillPointReward}");
+        GameEvents.EnemyKilled(skillPointReward);
+    }
+
+    private void OnEnable()
+    {
+        health = GetComponent<Health>();
+        Debug.Log($"[EnemyUnit:{name}] OnEnable. Has Health? {health != null} enabled={enabled}");
+        if (health != null)
+        {
+            health.Died -= OnDied; 
+            health.Died += OnDied;
+            Debug.Log($"[EnemyUnit:{name}] Subscribed to Health.Died");
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (health != null)
+        {
+            health.Died -= OnDied;
+            Debug.Log($"[EnemyUnit:{name}] Unsubscribed from Health.Died");
+        }
+    }
+
+
 
     void Update()
     {

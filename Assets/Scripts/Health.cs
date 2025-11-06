@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Health : MonoBehaviour
@@ -5,28 +6,24 @@ public class Health : MonoBehaviour
     public HealthStats stats;
     float currentHealth;
 
+    public event Action Died;
+
     void Awake()
     {
-        if (stats != null)
-            currentHealth = stats.maxHealth;
-        else
-        {
-            currentHealth = 10f;
-            Debug.Log("No Health Stats");
-        }
+        currentHealth = (stats != null) ? stats.maxHealth : 10f;
     }
 
     public void TakeDamage(float amount)
     {
-        Debug.Log(currentHealth);
         currentHealth -= amount;
-        if (currentHealth <= 0f)
-            Die();
+        Debug.Log($"[Health:{name}] {currentHealth} HP");
+        if (currentHealth <= 0f) Die();
     }
 
     void Die()
     {
-        Debug.Log("Dying.");
-        Destroy(this.gameObject);
+        Debug.Log($"[Health:{name}] Dying.");
+        Died?.Invoke();               
+        Destroy(gameObject);
     }
 }
