@@ -9,7 +9,7 @@ public class EnemyUnit : MonoBehaviour
     public LayerMask targetMask;
     public LayerMask obstacleMask;
     public UnitStats unitStats;
-    public Transform fortress;
+    private Transform fortress;
 
     float viewRadius = 100f;
     float visionAngle = 90f;
@@ -39,6 +39,7 @@ public class EnemyUnit : MonoBehaviour
 
     void Start()
     {
+        fortress = GameObject.Find("Fortress").transform;
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
@@ -61,19 +62,19 @@ public class EnemyUnit : MonoBehaviour
     {
         if (rewardGranted) return;
         rewardGranted = true;
-        Debug.Log($"[EnemyUnit:{name}] Died ? award {skillPointReward}");
+        //Debug.Log($"[EnemyUnit:{name}] Died ? award {skillPointReward}");
         GameEvents.EnemyKilled(skillPointReward);
     }
 
     private void OnEnable()
     {
         health = GetComponent<Health>();
-        Debug.Log($"[EnemyUnit:{name}] OnEnable. Has Health? {health != null} enabled={enabled}");
+        //Debug.Log($"[EnemyUnit:{name}] OnEnable. Has Health? {health != null} enabled={enabled}");
         if (health != null)
         {
             health.Died -= OnDied; 
             health.Died += OnDied;
-            Debug.Log($"[EnemyUnit:{name}] Subscribed to Health.Died");
+            //Debug.Log($"[EnemyUnit:{name}] Subscribed to Health.Died");
         }
     }
 
@@ -82,7 +83,7 @@ public class EnemyUnit : MonoBehaviour
         if (health != null)
         {
             health.Died -= OnDied;
-            Debug.Log($"[EnemyUnit:{name}] Unsubscribed from Health.Died");
+            //Debug.Log($"[EnemyUnit:{name}] Unsubscribed from Health.Died");
         }
     }
 
@@ -93,7 +94,7 @@ public class EnemyUnit : MonoBehaviour
         if (Time.time >= nextScanTime)
         {
             nextScanTime = Time.time + scanInterval;
-            ScanForTargets(); // Reevaluate targets continuously
+            ScanForTargets();
         }
 
         RunStateMachine();

@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8173419639980431150}
   - component: {fileID: 4928648808691573035}
   - component: {fileID: 7927271911939224769}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Goblin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -127,6 +127,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   unitStats: {fileID: 11400000, guid: dc3069c6114444510a5496d07c38a4d7, type: 2}
+  skillPointReward: 1
 --- !u!195 &4928648808691573035
 NavMeshAgent:
   m_ObjectHideFlags: 0

@@ -15,9 +15,11 @@ public class SkillPoints : MonoBehaviour
         GameEvents.OnEnemyKilled -= Add;
     }
 
-    private void Add(int amount)
-    {
-        Points += Mathf.Max(0, amount);
-        Debug.Log($"[SkillPoints] +{amount} ? {Points}");
-    }
+    public void Add(int amount)
+{
+    Points += amount;
+    Points = Mathf.Max(0, Points);
+    Debug.Log($"[SkillPoints] {amount:+#;-#;0} ? {Points}");
+}
+
 }
