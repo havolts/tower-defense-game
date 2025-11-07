@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< Updated upstream:Assets/Scripts/FortressMenu.cs.meta
 guid: 029818812d4a346af8a367a75c69f600
+=======
+guid: a6c8b1350ceaa464e902d6fc90672502
+>>>>>>> Stashed changes:Assets/UI/BillboardCanvas.cs.meta
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
