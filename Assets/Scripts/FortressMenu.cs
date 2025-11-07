@@ -38,7 +38,7 @@ public class FortressMenu : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("Must click on the ground!");
+                    Debug.Log("Must click on the ground.");
                 }
 
                 placingStone = false;
