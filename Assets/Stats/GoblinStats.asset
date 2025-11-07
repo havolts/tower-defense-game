@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9aeabc4eba85440c2a5958f328093451, type: 3}
   m_Name: GoblinStats
   m_EditorClassIdentifier: 
-  attackDamage: 5
+  attackDamage: 0
   attackCooldown: 1
   attackRange: 2
   movementSpeed: 10

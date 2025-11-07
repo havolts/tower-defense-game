@@ -4,9 +4,10 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
     public HealthStats stats;
-    float currentHealth;
+    private float currentHealth;
 
     public event Action Died;
+    public event Action<float> Damaged;
 
     void Awake()
     {
@@ -16,14 +17,22 @@ public class Health : MonoBehaviour
     public void TakeDamage(float amount)
     {
         currentHealth -= amount;
-        Debug.Log($"[Health:{name}] {currentHealth} HP");
+        currentHealth = Mathf.Max(0, currentHealth);
+        Debug.Log($"[Health: {name}] {currentHealth} HP");
+        Damaged?.Invoke(currentHealth);
+
         if (currentHealth <= 0f) Die();
     }
 
     void Die()
     {
         Debug.Log($"[Health:{name}] Dying.");
-        Died?.Invoke();               
+        Died?.Invoke();
         Destroy(gameObject);
+    }
+
+    public float CurrentHealthFraction()
+    {
+        return Mathf.Clamp01(currentHealth / ((stats != null) ? stats.maxHealth : 10f));
     }
 }

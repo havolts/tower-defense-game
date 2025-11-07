@@ -34,20 +34,16 @@ public class CameraController : MonoBehaviour
             speed = 20.0f;
         }
 
-        // if (mousePos.x <= edge || Input.GetKey("a"))
-        if (Input.GetKey("a"))
+        if (mousePos.x <= edge || Input.GetKey("a"))
             pos += Vector3.left * speed * Time.deltaTime;
 
-        // if (mousePos.x >= Screen.width - edge || Input.GetKey("d"))
-        if (Input.GetKey("d"))
+        if (mousePos.x >= Screen.width - edge || Input.GetKey("d"))
             pos += Vector3.right * speed * Time.deltaTime;
 
-        // if (mousePos.y <= edge || Input.GetKey("s"))
-        if (Input.GetKey("s"))
+        if (mousePos.y <= edge || Input.GetKey("s"))
             pos += Vector3.back * speed * Time.deltaTime;
 
-        // if (mousePos.y >= Screen.height - edge || Input.GetKey("w"))
-        if (Input.GetKey("w"))
+        if (mousePos.y >= Screen.height - edge || Input.GetKey("w"))
             pos += Vector3.forward * speed * Time.deltaTime;
 
         float zoomDelta = scrollSpeed * 100.0f * scroll * Time.deltaTime;
