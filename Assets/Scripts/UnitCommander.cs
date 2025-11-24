@@ -22,7 +22,6 @@ public class UnitCommander : MonoBehaviour
     {
         HandleSelection();
         HandleOrders();
-        HandleMoveToMouseShortcut();
         UpdateIndicators();
     }
 
@@ -162,29 +161,13 @@ public class UnitCommander : MonoBehaviour
             if (enemy == null) return;
 
             foreach (var selectedUnit in selected)
-                selectedUnit.AddOrder(new Order(OrderType.Attack, enemy.transform), append: Input.GetKey(KeyCode.LeftShift));
+                selectedUnit.AddOrder(new Order(OrderType.Attack, enemy.transform, true), append: Input.GetKey(KeyCode.LeftShift));
         }
         else if (((1 << hitLayer) & groundMask) != 0)
         {
             Vector3 targetPosition = hit.point;
             foreach (var selectedUnit in selected)
-                selectedUnit.AddOrder(new Order(OrderType.Move, targetPosition), append: Input.GetKey(KeyCode.LeftShift));
-        }
-    }
-
-    void HandleMoveToMouseShortcut()
-    {
-        if (!Input.GetKeyDown(KeyCode.F)) return;
-
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundMask))
-        {
-            Vector3 targetPosition = hit.point;
-            foreach (var selectedUnit in selected)
-            {
-                bool append = Input.GetKey(KeyCode.LeftShift);
-                selectedUnit.AddOrder(new Order(OrderType.Move, targetPosition), append);
-            }
+                selectedUnit.AddOrder(new Order(OrderType.Move, targetPosition, true), append: Input.GetKey(KeyCode.LeftShift));
         }
     }
 

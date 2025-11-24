@@ -7,11 +7,12 @@ public class FriendlyUnit : MonoBehaviour
     public UnitStats unitStats;
     private NavMeshAgent agent;
 
-    private List<Order> orders = new List<Order>();
+    public List<Order> orders = new List<Order>();
     private Order currentOrder;
 
+    private CombatStance stance = CombatStance.Passive;
+
     private Renderer rend;
-    private Color originalColor;
 
     void Start()
     {
@@ -20,8 +21,6 @@ public class FriendlyUnit : MonoBehaviour
         agent.stoppingDistance = 0f;
 
         rend = GetComponent<Renderer>();
-        if (rend != null)
-            originalColor = rend.material.color;
     }
 
     void Update()
@@ -31,59 +30,73 @@ public class FriendlyUnit : MonoBehaviour
             currentOrder = orders[0];
             orders.RemoveAt(0);
         }
-
-        // Change color based on having an order
-        if (rend != null)
-            rend.material.color = (currentOrder != null) ? Color.green : originalColor;
-
         if (currentOrder != null)
+        {
+            //Debug.Log($"Current Order: {currentOrder.orderType}, {currentOrder.targetTransform}");
             ExecuteOrder(currentOrder);
+            rend.material.color = Color.green;
+        }
+        else
+        {
+            rend.material.color = Color.white;
+        }
     }
-    private float lastAttackTime;
 
+    private float lastAttackTime;
     void ExecuteOrder(Order order)
     {
         switch (order.orderType)
         {
             case OrderType.Move:
-                MoveTo(order.targetPosition);
-                if (!agent.pathPending && agent.remainingDistance <= Mathf.Max(0.1f, agent.stoppingDistance))
-                    currentOrder = null;
+                HandleMove(order);
                 break;
 
             case OrderType.Attack:
-                if (order.targetTransform == null)
-                {
-                    currentOrder = null;
-                    return;
-                }
-
-                Transform target = order.targetTransform;
-                MoveTo(target.position);
-
-                float distance = Vector3.Distance(transform.position, target.position);
-                if (distance <= unitStats.attackRange)
-                {
-                    RotateTowards(target.position);
-
-                    if (Time.time >= lastAttackTime + unitStats.attackCooldown)
-                    {
-                        Health health = target.GetComponent<Health>();
-                        if (health != null)
-                            health.TakeDamage(unitStats.attackDamage);
-
-                        lastAttackTime = Time.time;
-                    }
-                }
-
-                // If target died or destroyed
-                if (target == null)
-                    currentOrder = null;
-
+                HandleAttack(order);
                 break;
         }
     }
 
+    // I split these out for sake of readability
+    void HandleMove(Order order)
+    {
+        MoveTo(order.targetPosition);
+
+        // Basically checks if the unit has reached it's destination - if so it completes order.
+        // Currently slightly problematic as the unit never goes to exact position, and does not take into account other objects at position.
+        if (!agent.pathPending && agent.remainingDistance <= Mathf.Max(0.1f, agent.stoppingDistance)) currentOrder = null;
+    }
+
+    void HandleAttack(Order order)
+    {
+        if (order.targetTransform == null)
+        {
+            currentOrder = null;
+            return;
+        }
+
+        Transform target = order.targetTransform;
+        float distance = Vector3.Distance(transform.position, target.position);
+
+        // Move only if stance is aggressive/player order and target is out of range
+        if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distance > unitStats.attackRange)
+            MoveTo(target.position);
+
+        // Attacks only if in range
+        if (!(stance == CombatStance.Passive))
+        {
+            if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+            {
+                Health health = target.GetComponent<Health>();
+                if (health != null)
+                    health.TakeDamage(unitStats.attackDamage);
+
+                lastAttackTime = Time.time;
+            }
+        }
+    }
+
+    // Adds order to the list of orders
     public void AddOrder(Order order, bool append)
     {
         if (!append)
@@ -93,59 +106,59 @@ public class FriendlyUnit : MonoBehaviour
         }
 
         orders.Add(order);
-
-        // Log current orders
-        string orderList = "";
-        foreach (var o in orders)
-        {
-            if (o.orderType == OrderType.Move)
-                orderList += $"Move to {o.targetPosition}\n";
-            else if (o.orderType == OrderType.Attack)
-                orderList += $"Attack {o.targetTransform?.name}\n";
-        }
-        Debug.Log(orderList);
+        //Removed previous debug.log which looped over list - poor efficiency
     }
 
     void MoveTo(Vector3 position)
     {
         Vector3 destination = position;
-
-        // Only offset if the target is farther than the attack range
         float distance = Vector3.Distance(transform.position, position);
-        if (distance > unitStats.attackRange)
-            destination = position - (position - transform.position).normalized * unitStats.attackRange;
 
+        if (distance > unitStats.attackRange)
+        {
+            Vector3 directionToTarget = (position - transform.position).normalized;
+            Vector3 offset = directionToTarget * unitStats.attackRange;
+            destination = position - offset;
+
+        }
         agent.SetDestination(destination);
         RotateTowards(position);
     }
 
-
     void RotateTowards(Vector3 position)
     {
-        Vector3 dir = (position - transform.position).normalized;
-        dir.y = 0;
-        if (dir.sqrMagnitude > 0.001f)
-            transform.forward = Vector3.Slerp(transform.forward, dir, Time.deltaTime * 10f);
+        Vector3 directionToTarget = (position - transform.position).normalized;
+        directionToTarget.y = 0;
+        if (directionToTarget.sqrMagnitude > 0.001f)
+        {
+            transform.forward = Vector3.Slerp(transform.forward, directionToTarget, Time.deltaTime * 10f);
+        }
     }
 }
 
+public enum CombatStance { Passive, Defensive, Aggressive }
 public enum OrderType { Move, Attack }
 
 public class Order
 {
     public OrderType orderType;
+
     public Vector3 targetPosition;
     public Transform targetTransform;
 
-    public Order(OrderType type, Vector3 position)
+    public bool isPlayerOrder;
+
+    public Order(OrderType type, Vector3 position, bool isplayerorder)
     {
         orderType = type;
         targetPosition = position;
+        isPlayerOrder = isplayerorder;
     }
 
-    public Order(OrderType type, Transform target)
+    public Order(OrderType type, Transform target, bool isplayerorder)
     {
         orderType = type;
         targetTransform = target;
+        isPlayerOrder = isplayerorder;
     }
 }

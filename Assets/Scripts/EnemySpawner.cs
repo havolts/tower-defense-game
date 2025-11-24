@@ -10,6 +10,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Update()
     {
+
         timer += Time.deltaTime;
         if (timer >= spawnInterval)
         {
