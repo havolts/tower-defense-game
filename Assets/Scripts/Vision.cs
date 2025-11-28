@@ -11,38 +11,18 @@ public class Vision : MonoBehaviour
     public LayerMask targetMask;
     public LayerMask obstacleMask;
 
-    float viewRadius = 100f;
-    float visionAngle = 110f;
-
-    float scanInterval = 0.25f;
-    float nextScanTime = 0f;
+    //Could probably add to unitstats
+    public float viewRadius = 100f;
+    public float visionAngle = 110f;
 
     List<Transform> visibleTargets = new List<Transform>();
 
-    // Start is called before the first frame update
-    void Start()
+    public Transform GetClosestTarget()
     {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (Time.time >= nextScanTime)
-        {
-            nextScanTime = Time.time + scanInterval;
-            int numOrders = this.GetComponent<FriendlyUnit>().orders.Count;
-            if (numOrders <= 0)
-            {
-                ScanForTargets();
-            }
-        }
-    }
-
-    Transform GetClosestTarget(List<Transform> visibleTargets, Vector3 origin)
-    {
+        Vector3 origin = transform.position;
         Transform closest = null;
         float closestDistSq = float.MaxValue;
+        ScanForTargets();
 
         foreach (var target in visibleTargets)
         {
@@ -53,7 +33,7 @@ public class Vision : MonoBehaviour
                 closestDistSq = distSq;
             }
         }
-
+        //Debug.Log(closest.name);
         return closest;
     }
 
@@ -72,20 +52,12 @@ public class Vision : MonoBehaviour
 
             if (Vector3.Angle(transform.forward, dir) < visionAngle / 2)
             {
-                if (!Physics.Raycast(transform.position, dir, dist, obstacleMask))
-                    visibleTargets.Add(target);
+                if (!Physics.Raycast(transform.position, dir, dist, obstacleMask)) visibleTargets.Add(target);
             }
-        }
-
-        var closest = GetClosestTarget(visibleTargets, transform.position);
-
-        if (visibleTargets.Count > 0)
-        {
-            Order newOrder = new Order(OrderType.Attack, closest, false);
-            this.GetComponent<FriendlyUnit>().AddOrder(newOrder, true);
         }
     }
 
+    //To be removed with final build
     void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;

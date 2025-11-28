@@ -161,13 +161,13 @@ public class UnitCommander : MonoBehaviour
             if (enemy == null) return;
 
             foreach (var selectedUnit in selected)
-                selectedUnit.AddOrder(new Order(OrderType.Attack, enemy.transform, true), append: Input.GetKey(KeyCode.LeftShift));
+                selectedUnit.AddOrder(new Order(enemy.transform, true), append: Input.GetKey(KeyCode.LeftShift));
         }
         else if (((1 << hitLayer) & groundMask) != 0)
         {
             Vector3 targetPosition = hit.point;
             foreach (var selectedUnit in selected)
-                selectedUnit.AddOrder(new Order(OrderType.Move, targetPosition, true), append: Input.GetKey(KeyCode.LeftShift));
+                selectedUnit.AddOrder(new Order(targetPosition, true), append: Input.GetKey(KeyCode.LeftShift));
         }
     }
 

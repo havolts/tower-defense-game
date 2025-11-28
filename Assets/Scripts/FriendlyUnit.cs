@@ -10,7 +10,9 @@ public class FriendlyUnit : MonoBehaviour
     public List<Order> orders = new List<Order>();
     private Order currentOrder;
 
-    private CombatStance stance = CombatStance.Passive;
+    private CombatStance stance = CombatStance.Aggressive;
+
+    private float lastAttackTime;
 
     private Renderer rend;
 
@@ -25,24 +27,27 @@ public class FriendlyUnit : MonoBehaviour
 
     void Update()
     {
-        if (currentOrder == null && orders.Count > 0)
+        if (currentOrder == null)
         {
-            currentOrder = orders[0];
-            orders.RemoveAt(0);
+            if (orders.Count > 0) // There are player-given orders
+            {
+                currentOrder = orders[0];
+                orders.RemoveAt(0);
+                rend.material.color = Color.blue; // Player-given order
+            }
+            else // There are no player-given orders
+            {
+                Transform closest = this.GetComponent<Vision>().GetClosestTarget();
+                if(closest != null)
+                {
+                    currentOrder = new Order(closest, false);
+                    rend.material.color = Color.green; // Self-given order
+                }
+            }
         }
-        if (currentOrder != null)
-        {
-            //Debug.Log($"Current Order: {currentOrder.orderType}, {currentOrder.targetTransform}");
-            ExecuteOrder(currentOrder);
-            rend.material.color = Color.green;
-        }
-        else
-        {
-            rend.material.color = Color.white;
-        }
+        if(currentOrder != null) ExecuteOrder(currentOrder);
     }
 
-    private float lastAttackTime;
     void ExecuteOrder(Order order)
     {
         switch (order.orderType)
@@ -148,16 +153,16 @@ public class Order
 
     public bool isPlayerOrder;
 
-    public Order(OrderType type, Vector3 position, bool isplayerorder)
+    public Order(Vector3 position, bool isplayerorder)
     {
-        orderType = type;
+        orderType = OrderType.Move;
         targetPosition = position;
         isPlayerOrder = isplayerorder;
     }
 
-    public Order(OrderType type, Transform target, bool isplayerorder)
+    public Order(Transform target, bool isplayerorder)
     {
-        orderType = type;
+        orderType = OrderType.Attack;
         targetTransform = target;
         isPlayerOrder = isplayerorder;
     }

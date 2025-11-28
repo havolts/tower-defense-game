@@ -2,241 +2,116 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-
-
 public class EnemyUnit : MonoBehaviour
 {
-    public LayerMask targetMask;
-    public LayerMask obstacleMask;
     public UnitStats unitStats;
-    private Transform fortress;
+    private NavMeshAgent agent;
+    private Order currentOrder;
+    private CombatStance stance = CombatStance.Aggressive;
+    private float lastAttackTime;
 
-    float viewRadius = 100f;
-    float visionAngle = 90f;
-
-    float scanInterval = 0.25f;
-    float nextScanTime = 0f;
-
-    List<Transform> visibleTargets = new List<Transform>();
-    Transform currentTarget;
-    NavMeshAgent agent;
-
-    float lastAttackTime;
-
-    public int skillPointReward = 1; 
-    private bool rewardGranted;                       
-    private Health health;                            
-
-    enum UnitState
-    {
-        Idle,
-        Searching,
-        Chasing,
-        Attacking
-    }
-
-    UnitState currentState = UnitState.Idle;
+    private Renderer rend;
 
     void Start()
     {
-        fortress = GameObject.Find("Fortress").transform;
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
 
-        health = GetComponent<Health>();
-        if (health != null)
-            health.Died += OnDied;
-
-        ChangeState(UnitState.Searching);
+        rend = GetComponent<Renderer>();
     }
-
-
-    void OnDestroy()
-    {
-        if (health != null)
-            health.Died -= OnDied;
-    }
-
-    private void OnDied()
-    {
-        if (rewardGranted) return;
-        rewardGranted = true;
-        //Debug.Log($"[EnemyUnit:{name}] Died ? award {skillPointReward}");
-        GameEvents.EnemyKilled(skillPointReward);
-    }
-
-    private void OnEnable()
-    {
-        health = GetComponent<Health>();
-        //Debug.Log($"[EnemyUnit:{name}] OnEnable. Has Health? {health != null} enabled={enabled}");
-        if (health != null)
-        {
-            health.Died -= OnDied; 
-            health.Died += OnDied;
-            //Debug.Log($"[EnemyUnit:{name}] Subscribed to Health.Died");
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (health != null)
-        {
-            health.Died -= OnDied;
-            //Debug.Log($"[EnemyUnit:{name}] Unsubscribed from Health.Died");
-        }
-    }
-
-
 
     void Update()
     {
-        if (Time.time >= nextScanTime)
+        Transform closest = this.GetComponent<Vision>().GetClosestTarget();
+        if (closest != null)
         {
-            nextScanTime = Time.time + scanInterval;
-            ScanForTargets();
+            currentOrder = new Order(this.GetComponent<Vision>().GetClosestTarget(), false);
+            rend.material.color = Color.red; // Self-given order
         }
-
-        RunStateMachine();
-    }
-
-    void RunStateMachine()
-    {
-        switch (currentState)
-        {
-            case UnitState.Idle:
-                ChangeState(UnitState.Searching);
-                break;
-
-            case UnitState.Searching:
-                if (currentTarget != null)
-                    ChangeState(UnitState.Chasing);
-                break;
-
-            case UnitState.Chasing:
-                if (currentTarget == null)
-                {
-                    ChangeState(UnitState.Searching);
-                    return;
-                }
-
-                MoveToTarget();
-
-                float dist = Vector3.Distance(transform.position, currentTarget.position);
-                if (currentTarget != fortress && dist <= unitStats.attackRange)
-                    ChangeState(UnitState.Attacking);
-                break;
-
-            case UnitState.Attacking:
-                if (currentTarget == null)
-                {
-                    ChangeState(UnitState.Searching);
-                    return;
-                }
-
-                float distToTarget = Vector3.Distance(transform.position, currentTarget.position);
-                if (distToTarget > unitStats.attackRange + 1f)
-                {
-                    ChangeState(UnitState.Chasing);
-                    return;
-                }
-
-                if (currentTarget != fortress)
-                    AttackTarget();
-                break;
-        }
-    }
-
-    void ChangeState(UnitState newState)
-    {
-        currentState = newState;
-    }
-
-    void ScanForTargets()
-    {
-        visibleTargets.Clear();
-
-        Collider[] targetsInView = Physics.OverlapSphere(transform.position, viewRadius, targetMask);
-
-        foreach (var col in targetsInView)
-        {
-            Transform target = col.transform;
-            Vector3 dir = (target.position - transform.position).normalized;
-            float dist = Vector3.Distance(transform.position, target.position);
-
-            if (Vector3.Angle(transform.forward, dir) < visionAngle / 2)
-            {
-                if (!Physics.Raycast(transform.position, dir, dist, obstacleMask))
-                    visibleTargets.Add(target);
-            }
-        }
-
-        visibleTargets.Sort((a, b) =>
-            Vector3.Distance(transform.position, a.position)
-            .CompareTo(Vector3.Distance(transform.position, b.position))
-        );
-
-        if (visibleTargets.Count > 0)
-            currentTarget = visibleTargets[0];
         else
-            currentTarget = fortress;
+        {
+            currentOrder = new Order(new Vector3(0,0,0), false); // Temporary fix, we need to get the fortress in start as we cannot set it to a variable for a prefab.
+        }
+        ExecuteOrder(currentOrder);
     }
 
-    void MoveToTarget()
+    void ExecuteOrder(Order order)
     {
-        if (currentTarget == null) return;
-
-        // If target is fortress, move directly to it
-        if (currentTarget == fortress)
+        switch (order.orderType)
         {
-            agent.SetDestination(fortress.position);
-            RotateTowards(fortress.position);
+            case OrderType.Move:
+                HandleMove(order);
+                break;
+
+            case OrderType.Attack:
+                HandleAttack(order);
+                break;
+        }
+    }
+
+    // I split these out for sake of readability
+    void HandleMove(Order order)
+    {
+        MoveTo(order.targetPosition);
+
+        // Basically checks if the unit has reached it's destination - if so it completes order.
+        // Currently slightly problematic as the unit never goes to exact position, and does not take into account other objects at position.
+        if (!agent.pathPending && agent.remainingDistance <= Mathf.Max(0.1f, agent.stoppingDistance)) currentOrder = null;
+    }
+
+    void HandleAttack(Order order)
+    {
+        if (order.targetTransform == null)
+        {
+            currentOrder = null;
             return;
         }
 
-        // Otherwise stop at attack range
-        Vector3 dir = (currentTarget.position - transform.position).normalized;
-        Vector3 destination = currentTarget.position - dir * unitStats.attackRange;
+        Transform target = order.targetTransform;
+        float distance = Vector3.Distance(transform.position, target.position);
+
+        // Move only if stance is aggressive/player order and target is out of range
+        if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distance > unitStats.attackRange)
+            MoveTo(target.position);
+
+        // Attacks only if in range
+        if (!(stance == CombatStance.Passive))
+        {
+            if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+            {
+                Health health = target.GetComponent<Health>();
+                if (health != null)
+                    health.TakeDamage(unitStats.attackDamage);
+
+                lastAttackTime = Time.time;
+            }
+        }
+    }
+
+    void MoveTo(Vector3 position)
+    {
+        Vector3 destination = position;
+        float distance = Vector3.Distance(transform.position, position);
+
+        if (distance > unitStats.attackRange)
+        {
+            Vector3 directionToTarget = (position - transform.position).normalized;
+            Vector3 offset = directionToTarget * unitStats.attackRange;
+            destination = position - offset;
+
+        }
         agent.SetDestination(destination);
-        RotateTowards(currentTarget.position);
+        RotateTowards(position);
     }
 
     void RotateTowards(Vector3 position)
     {
-        Vector3 dir = (position - transform.position).normalized;
-        dir.y = 0;
-        if (dir != Vector3.zero)
-            transform.forward = Vector3.Lerp(transform.forward, dir, Time.deltaTime * 10f);
-    }
-
-    void AttackTarget()
-    {
-        RotateTowards(currentTarget.position);
-
-        if (Time.time >= lastAttackTime + unitStats.attackCooldown)
+        Vector3 directionToTarget = (position - transform.position).normalized;
+        directionToTarget.y = 0;
+        if (directionToTarget.sqrMagnitude > 0.001f)
         {
-            currentTarget.GetComponent<Health>()?.TakeDamage(unitStats.attackDamage);
-            lastAttackTime = Time.time;
+            transform.forward = Vector3.Slerp(transform.forward, directionToTarget, Time.deltaTime * 10f);
         }
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, viewRadius);
-
-        Vector3 left = DirFromAngle(-visionAngle / 2, false);
-        Vector3 right = DirFromAngle(visionAngle / 2, false);
-
-        Gizmos.color = Color.blue;
-        Gizmos.DrawRay(transform.position, left * viewRadius);
-        Gizmos.DrawRay(transform.position, right * viewRadius);
-    }
-
-    Vector3 DirFromAngle(float angle, bool global)
-    {
-        if (!global)
-            angle += transform.eulerAngles.y;
-        return new Vector3(Mathf.Sin(angle * Mathf.Deg2Rad), 0, Mathf.Cos(angle * Mathf.Deg2Rad));
     }
 }
