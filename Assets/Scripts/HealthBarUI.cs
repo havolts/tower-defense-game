@@ -8,6 +8,8 @@ public class HealthBarUI : MonoBehaviour
 
     private Health healthComponent;
     private CanvasGroup canvasGroup;
+    public RectTransform healthBar;
+
 
     void Awake()
     {
@@ -37,7 +39,8 @@ public class HealthBarUI : MonoBehaviour
             1f
         );
 
-        transform.rotation = Quaternion.LookRotation(transform.position - Camera.main.transform.position);
+        healthBar.rotation = Quaternion.LookRotation(healthBar.position - Camera.main.transform.position);
+
 
 
         if (friendly)
