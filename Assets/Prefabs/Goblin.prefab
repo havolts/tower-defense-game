@@ -144,7 +144,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   unitStats: {fileID: 11400000, guid: dc3069c6114444510a5496d07c38a4d7, type: 2}
-  fortress: {fileID: 0}
 --- !u!114 &1323339166105483594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,4 +176,4 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   viewRadius: 100
-  visionAngle: 320
+  visionAngle: 100

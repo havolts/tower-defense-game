@@ -5,7 +5,7 @@ using UnityEngine;
 public class CameraController : MonoBehaviour
 {
     float speed = 20f;
-    float edge = 10f;
+    float edge = -10f;
 
     Camera cam;
     float scrollSpeed = -2f;
