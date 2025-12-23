@@ -45,7 +45,7 @@ public class EnemyUnit : MonoBehaviour
     void Update()
     {
         currentPosition = new Vector2(this.transform.position.x, this.transform.position.z);
-        FollowPath();
+        //FollowPath();
         //AttackTarget();
         tickTimer += Time.deltaTime;
         if (tickTimer >= tickInterval)

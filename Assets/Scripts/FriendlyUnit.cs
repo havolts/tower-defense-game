@@ -6,6 +6,7 @@ public class FriendlyUnit : MonoBehaviour
 {
     public UnitStats unitStats;
     private NavMeshAgent agent;
+    public GameObject fireboltPrefab; // or assign in inspector
 
     public List<Order> orders = new List<Order>();
     private Order currentOrder;
@@ -56,16 +57,24 @@ public class FriendlyUnit : MonoBehaviour
         if(currentOrder != null) ExecuteOrder(currentOrder);
     }
 
+    void CastFirebolt(Transform target)
+    {
+        GameObject bolt = Instantiate(fireboltPrefab, transform.position + Vector3.up * 1.5f, Quaternion.identity);
+        Firebolt firebolt = bolt.GetComponent<Firebolt>();
+        firebolt.Launch(target, unitStats.attackDamage);
+    }
+
+
     void ExecuteOrder(Order order)
     {
         switch (order.orderType)
         {
             case OrderType.Move:
-                //HandleMove(order);
+                HandleMove(order);
                 break;
 
             case OrderType.Attack:
-                //HandleAttack(order);
+                HandleAttack(order);
                 break;
         }
     }
@@ -100,12 +109,10 @@ public class FriendlyUnit : MonoBehaviour
         {
             if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
             {
-                Health health = target.GetComponent<Health>();
-                if (health != null)
-                    health.TakeDamage(unitStats.attackDamage);
-
+                CastFirebolt(target);
                 lastAttackTime = Time.time;
             }
+
         }
     }
 

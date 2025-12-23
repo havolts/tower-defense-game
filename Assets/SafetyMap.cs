@@ -78,6 +78,8 @@ public class SafetyMap : MonoBehaviour
         {
             FriendlyUnit friendly = unit.GetComponent<FriendlyUnit>();
             Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
+            float facingAngle = Mathf.Atan2(friendly.transform.forward.x, friendly.transform.forward.z) * Mathf.Rad2Deg;
+
             // Apply influence for enemies:
             ApplyFriendlyInfluence(unitPosition, friendly.influenceValue, friendly.influenceRange);
         }
@@ -196,6 +198,17 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    void ApplyDirectionFriendlyInfluence(Vector2 unitPosition, float angle, float influence)
+    {
+        int sector = ConvertAngleToSector(angle);
+        Vector2Int forwardCellIndex = ConvertSectorToCellIndex(sector, unitPosition);
+        Vector2Int leftCellIndex = ConvertSectorToCellIndex(sector-1, unitPosition);
+        Vector2Int rightCellIndex = ConvertSectorToCellIndex(sector+1, unitPosition);
+        SafetyMap.Instance.GetCell(forwardCellIndex.x, forwardCellIndex.y).friendlyInfluence += influence;
+        SafetyMap.Instance.GetCell(leftCellIndex.x, leftCellIndex.y).friendlyInfluence += influence;
+        SafetyMap.Instance.GetCell(rightCellIndex.x, rightCellIndex.y).friendlyInfluence += influence;
+    }
+
     int ConvertAngleToSector(float angle) // returns a 'sector' - think cardinal direction, 0 is north, 7 is northwest
     {
         if(angle < 0) angle += 360.0f; // converts a signed angle to a 360 degrees range angle
@@ -206,38 +219,38 @@ public class SafetyMap : MonoBehaviour
     Vector2Int ConvertSectorToCellIndex(int sector, Vector2 unitPosition) // maybe use a switch statement?
     {
         Vector2Int unitCell = ConvertWorldPositionToCellIndex(unitPosition);
-        if(sector == 0)
+        if(sector == 0) // North
         {
             unitCell.y += 1;
         }
-        else if (sector == 1)
+        else if (sector == 1) // NE
         {
             unitCell.x += 1;
             unitCell.y += 1;
         }
-        else if (sector == 2)
+        else if (sector == 2) // E
         {
             unitCell.x += 1;
         }
-        else if (sector == 3)
+        else if (sector == 3) // SE
         {
             unitCell.x += 1;
             unitCell.y -= 1;
         }
-        else if (sector == 4)
+        else if (sector == 4) // S
         {
             unitCell.y -= 1;
         }
-        else if (sector == 5)
+        else if (sector == 5) // SW
         {
             unitCell.x -= 1;
             unitCell.y -= 1;
         }
-        else if (sector == 6)
+        else if (sector == 6) // W
         {
             unitCell.x -= 1;
         }
-        else if (sector == 7)
+        else if (sector == 7) // NW
         {
             unitCell.x -= 1;
             unitCell.y += 1;
@@ -263,59 +276,4 @@ public class SafetyMap : MonoBehaviour
         positionZ = positionZ - (terrainSizeZ / 2) + (cellSize / 2.0f);
         return new Vector2(positionX, positionZ);
     }
-
-    /*void OnDrawGizmos()
-    {
-        if (grid == null) return;
-
-        float maxExpectedInfluence = 1.0f;
-
-        for (int row = 0; row < gridSizeZ; row++)
-        {
-            for (int column = 0; column < gridSizeX; column++)
-            {
-                float enemyInfluence = grid[row, column].enemyInfluence;
-                float friendlyInfluence = grid[row, column].friendlyInfluence;
-
-                Vector2 cellPos = ConvertCellIndexToWorldPosition(new Vector2Int(column, row));
-                Vector3 cubePosition = new Vector3(cellPos.x, 0.1f, cellPos.y);
-
-                // Enemy influence
-                if (enemyInfluence > 0.01f)
-                {
-                    float alpha = Mathf.Clamp01(enemyInfluence / maxExpectedInfluence);
-                    Gizmos.color = new Color(1, 0, 0, alpha);
-                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
-
-                #if UNITY_EDITOR
-                                UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, enemyInfluence.ToString("0.00"));
-                #endif
-                }
-
-                // Friendly influence
-                if (friendlyInfluence > 0.01f)
-                {
-                    float alpha = Mathf.Clamp01(friendlyInfluence / maxExpectedInfluence);
-                    Gizmos.color = new Color(0, 0, 1, alpha);
-                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
-
-                #if UNITY_EDITOR
-                                UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, friendlyInfluence.ToString("0.00"));
-                #endif
-                }
-
-                float enemyProximity = grid[row, column].enemyProximity; // ensure Cell class has this field
-                if (enemyProximity > 0.01f)
-                {
-                    float alpha = Mathf.Clamp01(enemyProximity / maxExpectedInfluence);
-                    Gizmos.color = new Color(1, 0.5f, 0, alpha); // orange
-                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
-                #if UNITY_EDITOR
-                    UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, enemyProximity.ToString("0.00"));
-                #endif
-                }
-            }
-        }
-        }*/
-
 }

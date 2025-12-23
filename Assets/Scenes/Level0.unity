@@ -1024,6 +1024,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wizard
       objectReference: {fileID: 0}
+    - target: {fileID: 7926119281261748768, guid: 6ed36d9f545cc4651a85b732893a2517, type: 3}
+      propertyPath: fireboltPrefab
+      value: 
+      objectReference: {fileID: 8625716470503885843, guid: d7d769d5437ef40108069791b68d6280, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
