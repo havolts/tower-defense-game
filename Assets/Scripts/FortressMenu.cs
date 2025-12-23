@@ -10,7 +10,7 @@ public class FortressMenu : MonoBehaviour
     public GameObject wizardPrefab;
     public GameObject spawnPoint;
     public GameObject Fortress;
-    public Camera camera;
+    public Camera cam;
     public GameObject stonePrefab;
     public LayerMask groundLayer;
 
@@ -26,7 +26,7 @@ public class FortressMenu : MonoBehaviour
 
         if (placingStone)
         {
-            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
             {
                 Instantiate(stonePrefab, hit.point, Quaternion.identity);
@@ -40,7 +40,7 @@ public class FortressMenu : MonoBehaviour
             return;
         }
 
-        Ray rayClick = camera.ScreenPointToRay(Input.mousePosition);
+        Ray rayClick = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(rayClick, out RaycastHit hitClick))
         {
             if (hitClick.collider.gameObject == Fortress)

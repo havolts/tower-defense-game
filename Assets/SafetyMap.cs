@@ -4,76 +4,195 @@ using UnityEngine;
 
 public class SafetyMap : MonoBehaviour
 {
-    Cell[,] cellmap;
+    public Cell[,] grid;
     public GameController controller;
 
-    int cellSize = 1;
-    int numberOfCellsX;
-    int numberOfCellsZ;
+    public int cellSize = 1;
+    public int gridSizeX;
+    public int gridSizeZ;
     int terrainSizeX;
     int terrainSizeZ;
-    void Start()
+
+    public static SafetyMap Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this; else Destroy(gameObject);
+    }
+
+    void SetupGrid()
     {
         terrainSizeX = (int)this.GetComponent<MeshRenderer>().bounds.size.x;
         terrainSizeZ = (int)this.GetComponent<MeshRenderer>().bounds.size.z;
 
-        numberOfCellsX = terrainSizeX / cellSize;
-        numberOfCellsZ = terrainSizeZ / cellSize;
+        gridSizeX = terrainSizeX / cellSize;
+        gridSizeZ = terrainSizeZ / cellSize;
 
-        cellmap = new Cell[numberOfCellsZ, numberOfCellsX];
-        for (int row = 0; row < numberOfCellsZ; row++)
+        grid = new Cell[gridSizeZ, gridSizeX];
+        for (int y = 0; y < gridSizeZ; y++) // vertical component - i.e. the rows (each array in 2d grid)
         {
-            for (int column = 0; column < numberOfCellsX; column++)
+            for (int x = 0; x < gridSizeX; x++) // horizontal - i.e. the columns (each element in array)
             {
-                cellmap[row, column] = new Cell(); // Initial allocation
+                SetCell(x, y, new Cell(x,y));
             }
         }
     }
 
+    void SetCell(int x, int y, Cell cell)
+    {
+        grid[y, x] = cell;
+    }
+
+    public Cell GetCell(int x, int y)
+    {
+        return grid[y, x];
+    }
+
+    public Cell GetCell(Vector2Int index)
+    {
+        return grid[index.y, index.x];
+    }
+
+    void Start()
+    {
+        SetupGrid();
+    }
+
+    public Vector2 ConvertVector3ToVector2(Vector3 vector)
+    {
+        return new Vector2(vector.x, vector.z);
+    }
+
     void FixedUpdate()
     {
-        ClearCellMap();
+        ClearInfluence();
         foreach(GameObject unit in controller.enemyUnits)
         {
-            Vector2 unitPosition = new Vector2(unit.transform.position.x, unit.transform.position.z);
-            Vector2 unitForwardDirection = new Vector2(unit.transform.forward.x, unit.transform.forward.z);
-            Vector2 unitRightDirection = new Vector2(unit.transform.right.x, unit.transform.right.z);
-            Vector2 unitForwardRightDirection = unitForwardDirection + unitRightDirection;
-            Vector2 unitForwardLeftDirection = unitForwardDirection - unitRightDirection;
-            float unitForwardRightAngle = Vector2.SignedAngle(unitForwardRightDirection, Vector2.up);
-            float unitForwardLeftAngle = Vector2.SignedAngle(unitForwardLeftDirection, Vector2.up);
-            float unitForwardAngle = Vector2.SignedAngle(unitForwardDirection, Vector2.up);
-
-            float baseSafety = 1.0f;
-
-            ModifyCellSafety(ConvertWorldPositionToCellIndex(unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardAngle), unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardRightAngle), unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardLeftAngle), unitPosition), baseSafety);
-            ModifySafetyAroundUnit(unitPosition, baseSafety*0.5f);
-            ModifyCellSafetyOnRing(unitPosition, 2, baseSafety*0.25f);
-            ModifyCellSafetyOnRing(unitPosition, 3, baseSafety*0.1f);
+            EnemyUnit enemy = unit.GetComponent<EnemyUnit>();
+            Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
+            // Apply influence for enemies:
+            ApplyEnemyInfluence(unitPosition, enemy.influenceValue, enemy.influenceRange);
+            ApplyEnemyProximity(unitPosition, enemy.proximityValue, enemy.proximityRange);
         }
         foreach(GameObject unit in controller.friendlyUnits)
         {
-            Vector2 unitPosition = new Vector2(unit.transform.position.x, unit.transform.position.z);
-            Vector2 unitForwardDirection = new Vector2(unit.transform.forward.x, unit.transform.forward.z);
-            Vector2 unitRightDirection = new Vector2(unit.transform.right.x, unit.transform.right.z);
-            Vector2 unitForwardRightDirection = unitForwardDirection + unitRightDirection;
-            Vector2 unitForwardLeftDirection = unitForwardDirection - unitRightDirection;
-            float unitForwardRightAngle = Vector2.SignedAngle(unitForwardRightDirection, Vector2.up);
-            float unitForwardLeftAngle = Vector2.SignedAngle(unitForwardLeftDirection, Vector2.up);
-            float unitForwardAngle = Vector2.SignedAngle(unitForwardDirection, Vector2.up);
+            FriendlyUnit friendly = unit.GetComponent<FriendlyUnit>();
+            Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
+            // Apply influence for enemies:
+            ApplyFriendlyInfluence(unitPosition, friendly.influenceValue, friendly.influenceRange);
+        }
+    }
 
-            float baseSafety = -1.0f;
+    void ClearInfluence()
+    {
+        foreach (Cell cell in grid)
+        {
+            cell.enemyInfluence = 0f;
+            cell.friendlyInfluence = 0f;
+            cell.enemyProximity = 0f;
+        }
+    }
 
-            ModifyCellSafety(ConvertWorldPositionToCellIndex(unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardAngle), unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardRightAngle), unitPosition), baseSafety);
-            ModifyCellSafety(ConvertSectorToCellIndex(ConvertAngleToSector(unitForwardLeftAngle), unitPosition), baseSafety);
-            ModifySafetyAroundUnit(unitPosition, baseSafety*0.5f);
-            ModifyCellSafetyOnRing(unitPosition, 2, baseSafety*0.25f);
-            ModifyCellSafetyOnRing(unitPosition, 3, baseSafety*0.1f);
+    void ApplyEnemyInfluence(Vector2 enemyPosition, float influenceValue, float influenceRange)
+    {
+        Vector2Int enemyCell = ConvertWorldPositionToCellIndex(enemyPosition);
+        int cellRange = Mathf.CeilToInt(influenceRange / cellSize);
+
+        for (int y = -cellRange; y <= cellRange; y++)
+        {
+            for (int x = -cellRange; x <= cellRange; x++)
+            {
+
+                int currentX = enemyCell.x + x; // offsets the index to the actual current cell in safetymap - local -> global
+                int currentY = enemyCell.y + y;
+
+                if (currentX < 0 && currentX >= gridSizeX && currentY < 0 && currentY >= gridSizeZ) continue; // ensures that the cell it is currently checking is within grid.
+
+                Vector2 currentCellPosition = ConvertCellIndexToWorldPosition(new Vector2Int(currentX, currentY)); // Gets real position of the current cell
+                Vector2 enemyCellPosition = ConvertCellIndexToWorldPosition(enemyCell); // Gets the real position of the enemy's cell
+                float distance = Vector2.Distance(enemyCellPosition, currentCellPosition); // Getting the distance between these two so that we can scale influence accordingly
+
+                if (distance <= influenceRange) // making sure that the cell we are looking at isn't too far
+                {
+                    float normalizedDistance = distance / influenceRange; // Normalises it
+                    float influence = Mathf.Max(0f, influenceValue * (1f - normalizedDistance * normalizedDistance)); // Quadratic falloff
+
+                    GetCell(currentX, currentY).enemyInfluence += influence; // Adds to the cell we are looking at
+                }
+
+            }
+        }
+    }
+
+    void ApplyFriendlyInfluence(Vector2 friendlyPosition, float influenceValue, float influenceRange)
+    {
+        Vector2Int centerCell = ConvertWorldPositionToCellIndex(friendlyPosition);
+        int cellRange = Mathf.CeilToInt(influenceRange / cellSize);
+
+        for (int y = -cellRange; y <= cellRange; y++)
+        {
+            for (int x = -cellRange; x <= cellRange; x++)
+            {
+
+                int targetX = centerCell.x + x;
+                int targetY = centerCell.y + y;
+
+                if (targetX >= 0 && targetX < gridSizeX && targetY >= 0 && targetY < gridSizeZ)
+                {
+                    Vector2 cellWorldPos = ConvertCellIndexToWorldPosition(new Vector2Int(targetX, targetY));
+                    Vector2 friendlyCellCenter = ConvertCellIndexToWorldPosition(centerCell);
+                    float distance = Vector2.Distance(friendlyCellCenter, cellWorldPos);
+
+                    if (distance <= influenceRange)
+                    {
+                        float normalizedDistance = distance / influenceRange;
+
+                        // Linear falloff
+                        //float influence = Mathf.Max(0f, influenceValue * (1f - normalizedDistance));
+
+                        // OR quadratic falloff
+                         float influence = Mathf.Max(0f, influenceValue * (1f - normalizedDistance * normalizedDistance));
+
+                        GetCell(targetX, targetY).friendlyInfluence += influence;
+                    }
+                }
+            }
+        }
+    }
+
+    void ApplyEnemyProximity(Vector2 friendlyPosition, float proximityValue, float proximityRange)
+    {
+        Vector2Int centerCell = ConvertWorldPositionToCellIndex(friendlyPosition);
+        int cellRange = Mathf.CeilToInt(proximityRange / cellSize);
+
+        for (int y = -cellRange; y <= cellRange; y++)
+        {
+            for (int x = -cellRange; x <= cellRange; x++)
+            {
+
+                int targetX = centerCell.x + x;
+                int targetY = centerCell.y + y;
+
+                if (targetX >= 0 && targetX < gridSizeX && targetY >= 0 && targetY < gridSizeZ)
+                {
+                    Vector2 cellWorldPos = ConvertCellIndexToWorldPosition(new Vector2Int(targetX, targetY));
+                    Vector2 enemyCellCenter = ConvertCellIndexToWorldPosition(centerCell);
+                    float distance = Vector2.Distance(enemyCellCenter, cellWorldPos);
+
+                    if (distance <= proximityRange)
+                    {
+                        float normalizedDistance = distance / proximityRange;
+
+                        // Linear falloff
+                        float proximity = Mathf.Max(0f, proximityValue * (1f - normalizedDistance));
+
+                        // OR quadratic falloff
+                        //float proximity = Mathf.Max(0f, proximityValue * (1f - normalizedDistance * normalizedDistance));
+
+                        GetCell(targetX, targetY).enemyProximity += proximity;
+                    }
+                }
+            }
         }
     }
 
@@ -84,7 +203,7 @@ public class SafetyMap : MonoBehaviour
         return Mathf.FloorToInt(((angle+22.5f) % 360.0f) / 45.0f); // adding 22.5 as forward is range of -22.5 to 22.5. This gets the 'sector' of the direction.
     }
 
-    Vector2Int ConvertSectorToCellIndex(int sector, Vector2 unitPosition)
+    Vector2Int ConvertSectorToCellIndex(int sector, Vector2 unitPosition) // maybe use a switch statement?
     {
         Vector2Int unitCell = ConvertWorldPositionToCellIndex(unitPosition);
         if(sector == 0)
@@ -126,81 +245,8 @@ public class SafetyMap : MonoBehaviour
         return unitCell;
     }
 
-    void ModifyCellSafety(Vector2Int cellIndex, float safetyModifier)
-    {
-        // Add bounds check
-        if (cellIndex.x >= 0 && cellIndex.x < numberOfCellsX && cellIndex.y >= 0 && cellIndex.y < numberOfCellsZ)
-        {
-            cellmap[cellIndex.y, cellIndex.x].safety = Mathf.Clamp(cellmap[cellIndex.y, cellIndex.x].safety + safetyModifier, -1.0f, 1.0f);
-        }
-    }
 
-    void ModifySafetyAroundUnit(Vector2 unitPosition, float safetyModifier)
-    {
-        Vector2Int cellIndex = ConvertWorldPositionToCellIndex(unitPosition);
-        for (int i = cellIndex.y -1; i <= cellIndex.y + 1; i++)
-        {
-            for (int j = cellIndex.x -1; j <= cellIndex.x + 1; j++)
-            {
-                if (i >= 0 && i < numberOfCellsZ && j >= 0 && j < numberOfCellsX)
-                {
-                    ModifyCellSafety(new Vector2Int(j, i), safetyModifier);
-                }
-            }
-        }
-    }
-
-    void ModifyCellSafetyOnRing(Vector2 unitPosition, int distance, float safetyModifier) // THIS METHOD IS ENTIRELY AI CODE - GEMINI
-    {
-        // 1. Get the center cell index
-        Vector2Int centerCell = ConvertWorldPositionToCellIndex(unitPosition);
-        int centerX = centerCell.x;
-        int centerY = centerCell.y;
-
-        // The bounds of the square to check are defined by the distance 'D'
-        int minX = centerX - distance;
-        int maxX = centerX + distance;
-        int minY = centerY - distance;
-        int maxY = centerY + distance;
-
-        // Loop over the full square region
-        for (int y = minY; y <= maxY; y++)
-        {
-            for (int x = minX; x <= maxX; x++)
-            {
-                // 2. Calculate the distance from the center cell (Manhattan distance, essentially)
-                int offsetX = Mathf.Abs(x - centerX);
-                int offsetY = Mathf.Abs(y - centerY);
-
-                // 3. Conditional Check: Only modify cells exactly on the ring
-                // The max of the two offsets must equal the desired distance 'D'.
-                if (Mathf.Max(offsetX, offsetY) == distance)
-                {
-                    // 4. Apply safety only to the cells on the perimeter/ring
-
-                    // Add your standard bounds check here
-                    if (x >= 0 && x < numberOfCellsX && y >= 0 && y < numberOfCellsZ)
-                    {
-                        // Assuming you have a simplified ModifyCellSafety that handles clamping
-                        ModifyCellSafety(new Vector2Int(x, y), safetyModifier);
-                    }
-                }
-            }
-        }
-    }
-
-    void ClearCellMap()
-    {
-        for (int row = 0; row < numberOfCellsZ; row++)
-        {
-            for (int column = 0; column < numberOfCellsX; column++)
-            {
-                cellmap[row, column].safety = 0.0f;
-            }
-        }
-    }
-
-    Vector2Int ConvertWorldPositionToCellIndex(Vector2 worldPosition)
+    public Vector2Int ConvertWorldPositionToCellIndex(Vector2 worldPosition)
     {
         float positionX = (worldPosition.x) + (terrainSizeX / 2);
         int cellIndexX = Mathf.FloorToInt(positionX / cellSize);
@@ -209,7 +255,7 @@ public class SafetyMap : MonoBehaviour
         return new Vector2Int(cellIndexX, cellIndexY);
     }
 
-    Vector2 ConvertCellIndexToWorldPosition(Vector2Int cellIndex)
+    public Vector2 ConvertCellIndexToWorldPosition(Vector2Int cellIndex)
     {
         float positionX = cellIndex.x * cellSize;
         positionX = positionX - (terrainSizeX / 2) + (cellSize / 2.0f);
@@ -218,29 +264,58 @@ public class SafetyMap : MonoBehaviour
         return new Vector2(positionX, positionZ);
     }
 
-    void OnDrawGizmos()
+    /*void OnDrawGizmos()
     {
-        if (cellmap == null) return;
+        if (grid == null) return;
 
-        for (int row = 0; row < numberOfCellsZ; row++)
+        float maxExpectedInfluence = 1.0f;
+
+        for (int row = 0; row < gridSizeZ; row++)
         {
-            for (int column = 0; column < numberOfCellsX; column++)
+            for (int column = 0; column < gridSizeX; column++)
             {
-                Vector2 cellPosition = ConvertCellIndexToWorldPosition(new Vector2Int(column, row));
-                Vector3 cubePosition = new Vector3(cellPosition.x, 1.0f, cellPosition.y);
-                Gizmos.color = new Color(0,0,0,0);
-                float safety = cellmap[row, column].safety;
-                if (safety > 0.0f)
+                float enemyInfluence = grid[row, column].enemyInfluence;
+                float friendlyInfluence = grid[row, column].friendlyInfluence;
+
+                Vector2 cellPos = ConvertCellIndexToWorldPosition(new Vector2Int(column, row));
+                Vector3 cubePosition = new Vector3(cellPos.x, 0.1f, cellPos.y);
+
+                // Enemy influence
+                if (enemyInfluence > 0.01f)
                 {
-                    Gizmos.color = new Color(0, 0, safety, 1);
+                    float alpha = Mathf.Clamp01(enemyInfluence / maxExpectedInfluence);
+                    Gizmos.color = new Color(1, 0, 0, alpha);
+                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
+
+                #if UNITY_EDITOR
+                                UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, enemyInfluence.ToString("0.00"));
+                #endif
                 }
-                if (safety < 0.0f)
+
+                // Friendly influence
+                if (friendlyInfluence > 0.01f)
                 {
-                    safety = Mathf.Abs(cellmap[row, column].safety);
-                    Gizmos.color = new Color(safety, 0, 0, 1);
+                    float alpha = Mathf.Clamp01(friendlyInfluence / maxExpectedInfluence);
+                    Gizmos.color = new Color(0, 0, 1, alpha);
+                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
+
+                #if UNITY_EDITOR
+                                UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, friendlyInfluence.ToString("0.00"));
+                #endif
                 }
-                Gizmos.DrawCube(cubePosition, new Vector3(cellSize,cellSize,cellSize));
+
+                float enemyProximity = grid[row, column].enemyProximity; // ensure Cell class has this field
+                if (enemyProximity > 0.01f)
+                {
+                    float alpha = Mathf.Clamp01(enemyProximity / maxExpectedInfluence);
+                    Gizmos.color = new Color(1, 0.5f, 0, alpha); // orange
+                    Gizmos.DrawCube(cubePosition, new Vector3(cellSize, 0.05f, cellSize));
+                #if UNITY_EDITOR
+                    UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.05f, enemyProximity.ToString("0.00"));
+                #endif
+                }
             }
         }
-    }
+        }*/
+
 }

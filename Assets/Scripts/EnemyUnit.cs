@@ -6,103 +6,198 @@ public class EnemyUnit : MonoBehaviour
 {
     public UnitStats unitStats;
     private NavMeshAgent agent;
-    private Order currentOrder;
-    private CombatStance stance = CombatStance.Aggressive;
+    public float health, maxHealth;
+    public float influenceValue, influenceRange; // influenceRange is in world units (metres).
+    public float proximityValue, proximityRange;
     private float lastAttackTime;
+    WorkingMap workingMap;
+    WorkingMap gizmoMap;
+    Health healthComponent;
+    float nextAttackTime;
 
-    private Renderer rend;
+    List<Cell> path = new List<Cell>();
+    int currentIndex = 0;
+
+    public float tickInterval = 1f;
+    private float tickTimer = 0f;
+
+    Order currentOrder = null;
+
+    Vector2 currentPosition;
+
 
     void Start()
     {
+        influenceValue = 1.0f;
+        influenceRange = unitStats.attackRange;
+        proximityRange = 2.0f;
+        proximityValue = 5.0f;
+        workingMap = new WorkingMap((4*(int)influenceRange)+1);
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
-
-        rend = GetComponent<Renderer>();
+        healthComponent = GetComponent<Health>();
+        maxHealth = healthComponent.stats.maxHealth;
+        currentPosition = new Vector2(this.transform.position.x, this.transform.position.z);
+        UpdateTarget();
     }
 
     void Update()
     {
-        Transform closest = this.GetComponent<Vision>().GetClosestTarget();
-        if (closest != null)
+        currentPosition = new Vector2(this.transform.position.x, this.transform.position.z);
+        FollowPath();
+        //AttackTarget();
+        tickTimer += Time.deltaTime;
+        if (tickTimer >= tickInterval)
         {
-            currentOrder = new Order(this.GetComponent<Vision>().GetClosestTarget(), false);
-            rend.material.color = Color.red; // Self-given order
+            tickTimer -= tickInterval;
+            Tick();
         }
-        else
-        {
-            currentOrder = new Order(new Vector3(0,0,0), false); // Temporary fix, we need to get the fortress in start as we cannot set it to a variable for a prefab.
-        }
-        ExecuteOrder(currentOrder);
+        if(currentOrder == null || currentOrder.targetTransform == null) return;
+        RotateTowards(currentOrder.targetTransform.position);
     }
 
-    void ExecuteOrder(Order order)
+    void Tick()
     {
-        switch (order.orderType)
-        {
-            case OrderType.Move:
-                HandleMove(order);
-                break;
+        Debug.Log("Tick at " + Time.time);
+        health = healthComponent.currentHealth;
+        UpdateTarget();
+        GetPathToTarget();
+    }
 
-            case OrderType.Attack:
-                HandleAttack(order);
-                break;
+    void AttackTarget()
+    {
+        if (currentOrder == null) {return;}
+        if(currentOrder.targetTransform == null) {return;}
+        if (Vector3.Distance(currentOrder.targetTransform.position, this.transform.position) <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+        {
+            Health health = currentOrder.targetTransform.GetComponent<Health>();
+            if (health != null) health.TakeDamage(unitStats.attackDamage);
+            lastAttackTime = Time.time;
         }
     }
 
-    // I split these out for sake of readability
-    void HandleMove(Order order)
+    WorkingMap GetOwnProximity()
     {
-        MoveTo(order.targetPosition);
+        Vector2Int ownCell = SafetyMap.Instance.ConvertWorldPositionToCellIndex(currentPosition);
+        int cellRange = Mathf.CeilToInt(proximityRange / SafetyMap.Instance.cellSize);
+        WorkingMap proximityMap = new WorkingMap(cellRange*2);
+        proximityMap.startIndex = new Vector2Int(ownCell.x - cellRange, ownCell.y - cellRange);
+        proximityMap.currentDiameter = cellRange * 2;
 
-        // Basically checks if the unit has reached it's destination - if so it completes order.
-        // Currently slightly problematic as the unit never goes to exact position, and does not take into account other objects at position.
-        if (!agent.pathPending && agent.remainingDistance <= Mathf.Max(0.1f, agent.stoppingDistance)) currentOrder = null;
+        for (int y = -cellRange; y < cellRange; y++)
+        {
+            for (int x = -cellRange; x < cellRange; x++)
+            {
+
+                int currentX = ownCell.x + x; // offsets the index to the actual current cell in safetymap - local -> global
+                int currentY = ownCell.y + y;
+
+                if (currentX < 0 || currentX >= SafetyMap.Instance.gridSizeX || currentY < 0 || currentY >= SafetyMap.Instance.gridSizeZ) continue; // ensures that the cell it is currently checking is within safetymap grid.
+
+                Vector2 currentCellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(new Vector2Int(currentX, currentY)); // Gets real position of the current cell
+                Vector2 enemyCellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(ownCell); // Gets the real position of the enemy's cell (is not same as currentPosition)
+                float distance = Vector2.Distance(enemyCellPosition, currentCellPosition); // Getting the distance between these two so that we can scale influence accordingly
+
+                if (distance <= proximityRange) // making sure that the cell we are looking at isn't too far
+                {
+                    float normalizedDistance = distance / proximityRange; // Normalises it
+                    float proximity = Mathf.Max(0f, proximityValue * (1f - normalizedDistance * normalizedDistance)); // Quadratic falloff
+                    // need to add the proximity into a workingmap then use that to get rid of the units own proximity in position calculation to stop constant changing position.
+                    int mapX = x + cellRange;
+                    int mapY = y + cellRange;
+                    proximityMap.SetCell(mapX, mapY, proximity);
+                }
+
+            }
+        }
+        return proximityMap;
     }
 
-    void HandleAttack(Order order)
+    void GetPathToTarget()
     {
-        if (order.targetTransform == null)
+        if (currentOrder == null) {return;}
+        if(currentOrder.targetTransform == null) return;
+        Vector2 targetPosition = new Vector2(currentOrder.targetTransform.position.x, currentOrder.targetTransform.position.z);
+        Vector2Int targetIndex = SafetyMap.Instance.ConvertWorldPositionToCellIndex(targetPosition);
+        Cell targetCell = SafetyMap.Instance.GetCell(targetIndex);
+        int radius = Mathf.FloorToInt(unitStats.attackRange); // NTS: Will need to be changed if cell size is changed
+        WorkingMap enemyProximity = new WorkingMap(radius*2+1);
+        enemyProximity.Fill(targetIndex, radius, CellData.enemyProximity);
+        enemyProximity.Subtract(GetOwnProximity());
+
+        workingMap.Fill(targetIndex, radius, CellData.friendlyInfluence);
+        workingMap.Add(enemyProximity);
+        workingMap.Inverse();
+        if(targetCell.friendlyInfluence == 0.0f) return; //making sure that the cell actually has a friendly presence.
+
+        Vector2Int positionIndex = workingMap.GetHighestIndex(currentPosition);
+        if(positionIndex == new Vector2Int(-1,-1)) return;
+        Cell positionCell = SafetyMap.Instance.GetCell(positionIndex);
+        Vector2 centreCellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(positionIndex);
+
+        path = PathingSystem.Instance.FindPath(currentPosition, centreCellPosition);
+    }
+
+    // All cells are exactly at x.5,y.5 which means the unit stays outside of attack range
+    // This code gets the position where the cell's centre and the attack range meet and tells the unit to go there.
+    /*Vector2 direction = (centreCellPosition - targetPosition).normalized;
+    Vector2 BC = -direction * unitStats.attackRange;
+    Vector2 C = targetPosition + BC;*/
+
+    void UpdateTarget()
+    {
+        Transform closest = GetComponent<Vision>().GetClosestTarget();
+        if(closest == null) return;
+        //Debug.Log(closest.position);
+        if(currentOrder != null)
         {
-            currentOrder = null;
+            if (currentOrder.targetTransform.Equals(closest)) {return; }
+            if(currentOrder.orderType == OrderType.Move) return;
+        }
+        currentOrder = new Order(closest, false);
+        RotateTowards(closest.position);
+    }
+
+    void UpdatePath()
+    {
+        if(currentOrder.orderType == OrderType.Move) return;
+        path = PathingSystem.Instance.FindPath(this.transform.position, currentOrder.targetTransform.position);
+    }
+
+    void FollowPath()
+    {
+        if (path == null || path.Count == 0) return;
+
+        if (currentIndex < 0) currentIndex = 0;
+
+        if (currentIndex >= path.Count)
+        {
+            path.Clear();
+            currentIndex = 0;
             return;
         }
 
-        Transform target = order.targetTransform;
-        float distance = Vector3.Distance(transform.position, target.position);
+        Vector2 currentPos = SafetyMap.Instance.ConvertVector3ToVector2(transform.position);
+        Vector2 targetPos = path[currentIndex].position;
 
-        // Move only if stance is aggressive/player order and target is out of range
-        if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distance > unitStats.attackRange)
-            MoveTo(target.position);
-
-        // Attacks only if in range
-        if (!(stance == CombatStance.Passive))
+        if (Vector2.Distance(currentPos, targetPos) <= 0.1f)
         {
-            if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
-            {
-                Health health = target.GetComponent<Health>();
-                if (health != null)
-                    health.TakeDamage(unitStats.attackDamage);
-
-                lastAttackTime = Time.time;
-            }
+            currentIndex++;
+            return;
         }
+
+        MoveTo(targetPos);
     }
 
     void MoveTo(Vector3 position)
     {
-        Vector3 destination = position;
-        float distance = Vector3.Distance(transform.position, position);
-
-        if (distance > unitStats.attackRange)
-        {
-            Vector3 directionToTarget = (position - transform.position).normalized;
-            Vector3 offset = directionToTarget * unitStats.attackRange;
-            destination = position - offset;
-
-        }
+        agent.SetDestination(position);
+    }
+    void MoveTo(Vector2 position)
+    {
+        Vector3 destination = new Vector3(position.x, 0, position.y);
         agent.SetDestination(destination);
-        RotateTowards(position);
     }
 
     void RotateTowards(Vector3 position)
@@ -114,4 +209,37 @@ public class EnemyUnit : MonoBehaviour
             transform.forward = Vector3.Slerp(transform.forward, directionToTarget, Time.deltaTime * 10f);
         }
     }
+
+
+    public bool drawGizmos = false;
+
+    void OnDrawGizmos()
+    {
+        if (!drawGizmos) return;
+        if (workingMap == null) return;
+
+        WorkingMap gizmoMap = workingMap;
+        int currentDiameter = gizmoMap.currentDiameter;
+        //gizmoMap.Normalise();
+
+        for (int i = 0; i < currentDiameter; i++)
+        {
+            for (int j = 0; j < currentDiameter; j++)
+            {
+                float value = gizmoMap.GetCell(j, i); // normalized 0-1
+                Color cellColor = Color.Lerp(Color.white, Color.red, value);
+                Gizmos.color = cellColor;
+                Vector2 cellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(new Vector2Int(gizmoMap.startIndex.x + j, gizmoMap.startIndex.y + i));
+                Vector3 cubePosition = new Vector3(cellPosition.x, 0.1f, cellPosition.y);
+
+                #if UNITY_EDITOR
+                    UnityEditor.Handles.Label(cubePosition + Vector3.up * 0.5f, value.ToString("0.00"));
+                #endif
+
+                Gizmos.DrawCube(cubePosition, new Vector3(1f, 0.05f, 1f));
+            }
+        }
+    }
+
+
 }

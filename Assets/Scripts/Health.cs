@@ -4,7 +4,7 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
     public HealthStats stats;
-    private float currentHealth;
+    public float currentHealth;
 
     public event Action Died;
     public event Action<float> Damaged;

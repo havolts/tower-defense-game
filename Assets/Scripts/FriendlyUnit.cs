@@ -12,6 +12,9 @@ public class FriendlyUnit : MonoBehaviour
 
     private CombatStance stance = CombatStance.Aggressive;
 
+    public float health, maxHealth;
+    public float influenceValue, influenceRange; // influenceRange is in world units (metres).
+
     private float lastAttackTime;
 
     private Renderer rend;
@@ -22,11 +25,16 @@ public class FriendlyUnit : MonoBehaviour
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
 
+        maxHealth = GetComponent<Health>().stats.maxHealth;
         rend = GetComponent<Renderer>();
+
+        influenceValue = 5.0f;
+        influenceRange = unitStats.attackRange*2;
     }
 
     void Update()
     {
+        health = GetComponent<Health>().currentHealth;
         if (currentOrder == null)
         {
             if (orders.Count > 0) // There are player-given orders
@@ -53,11 +61,11 @@ public class FriendlyUnit : MonoBehaviour
         switch (order.orderType)
         {
             case OrderType.Move:
-                HandleMove(order);
+                //HandleMove(order);
                 break;
 
             case OrderType.Attack:
-                HandleAttack(order);
+                //HandleAttack(order);
                 break;
         }
     }
