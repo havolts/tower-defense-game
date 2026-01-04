@@ -3,8 +3,16 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
+
+    public static GameController Instance { get; private set; }
+
     public List<GameObject> friendlyUnits = new List<GameObject>();
     public List<GameObject> enemyUnits = new List<GameObject>();
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this; else Destroy(gameObject);
+    }
 
     void Start()
     {
@@ -31,9 +39,7 @@ public class GameController : MonoBehaviour
     }
 
     void OnUnitDied(GameObject unit, List<GameObject> unitList)
-        {
-            unitList.Remove(unit);
-            Debug.Log($"Unit {unit.name} removed from list. Remaining: {unitList.Count}");
-        }
-
+    {
+        unitList.Remove(unit);
+    }
 }
