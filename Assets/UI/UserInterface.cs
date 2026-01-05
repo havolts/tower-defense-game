@@ -59,6 +59,26 @@ public class UserInterface : MonoBehaviour
     void Update()
     {
         points.text = SkillPoints.Instance.points.ToString();
+        UpdateCooldownVisuals();
+    }
+
+    void UpdateCooldownVisuals()
+    {
+        UpdateSpellButtonColor(meteorSpellButton, SpellType.Meteor);
+        UpdateSpellButtonColor(disperseSpellButton, SpellType.Disperse);
+        UpdateSpellButtonColor(suspendSpellButton, SpellType.Suspend);
+        UpdateSpellButtonColor(stoneSpellButton, SpellType.Stone);
+    }
+
+    void UpdateSpellButtonColor(GameObject spellButton, SpellType type)
+    {
+        CastSpell cast = spellButton.GetComponent<CastSpell>();
+        if (cast == null) return;
+
+        bool coolingDown = !cast.IsCooldownOver(type);
+        Image img = spellButton.GetComponent<Image>();
+        if (img != null)
+            img.color = coolingDown ? Color.grey : Color.white;
     }
 
     void TogglePanel()

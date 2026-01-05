@@ -51,7 +51,7 @@ public class CastSpell : MonoBehaviour
         }
     }
 
-    bool IsCooldownOver(SpellType spellType)
+    public bool IsCooldownOver(SpellType spellType)
     {
         float currentTime = Time.time;
 
