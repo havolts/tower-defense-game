@@ -144,7 +144,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   unitStats: {fileID: 11400000, guid: dc3069c6114444510a5496d07c38a4d7, type: 2}
-  fortress: {fileID: 0}
+  influenceValue: 1
+  influenceRange: 0
+  proximityValue: 5
+  proximityRange: 2
+  skillPointReward: 1
+  tickInterval: 1
+  fortess: {fileID: 0}
+  drawGizmos: 0
 --- !u!114 &1323339166105483594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158,6 +165,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stats: {fileID: 11400000, guid: 91fbfdf2a2aff40a7a73d58de9825171, type: 2}
+  currentHealth: 0
 --- !u!114 &1160024110118869834
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,4 +185,3 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   viewRadius: 100
-  visionAngle: 320

@@ -223,6 +223,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   unitStats: {fileID: 11400000, guid: 09e3d7f2b655f4aea8029147edfd5269, type: 2}
+  level: 1
+  fireboltPrefab: {fileID: 8625716470503885843, guid: d7d769d5437ef40108069791b68d6280, type: 3}
+  health: 0
+  maxHealth: 0
+  influenceValue: 0
+  influenceRange: 0
 --- !u!114 &4803133128882211682
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -236,6 +242,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stats: {fileID: 11400000, guid: 3033fdd6405c64e74a155380bb72a0bf, type: 2}
+  currentHealth: 0
 --- !u!114 &7484879990295787080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -270,7 +277,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   viewRadius: 100
-  visionAngle: 110
 --- !u!1 &4649328675244090786
 GameObject:
   m_ObjectHideFlags: 0
