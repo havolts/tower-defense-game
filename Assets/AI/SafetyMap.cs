@@ -70,7 +70,7 @@ public class SafetyMap : MonoBehaviour
         {
             EnemyUnit enemy = unit.GetComponent<EnemyUnit>();
             Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
-            // Apply influence for enemies:
+
             ApplyEnemyInfluence(unitPosition, enemy.influenceValue, enemy.influenceRange);
             ApplyEnemyProximity(unitPosition, enemy.proximityValue, enemy.proximityRange);
         }
@@ -80,7 +80,6 @@ public class SafetyMap : MonoBehaviour
             Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
             float facingAngle = Mathf.Atan2(friendly.transform.forward.x, friendly.transform.forward.z) * Mathf.Rad2Deg;
 
-            // Apply influence for enemies:
             ApplyFriendlyInfluence(unitPosition, friendly.influenceValue, friendly.influenceRange);
         }
     }
@@ -108,7 +107,7 @@ public class SafetyMap : MonoBehaviour
                 int currentX = enemyCell.x + x; // offsets the index to the actual current cell in safetymap - local -> global
                 int currentY = enemyCell.y + y;
 
-                if (currentX < 0 && currentX >= gridSizeX && currentY < 0 && currentY >= gridSizeZ) continue; // ensures that the cell it is currently checking is within grid.
+                if (currentX < 0 || currentX >= gridSizeX || currentY < 0 || currentY >= gridSizeZ) continue; // ensures that the cell it is currently checking is within grid.
 
                 Vector2 currentCellPosition = ConvertCellIndexToWorldPosition(new Vector2Int(currentX, currentY)); // Gets real position of the current cell
                 Vector2 enemyCellPosition = ConvertCellIndexToWorldPosition(enemyCell); // Gets the real position of the enemy's cell

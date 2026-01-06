@@ -11,6 +11,7 @@ public class EnemyUnit : MonoBehaviour
     public float proximityRange = 2.0f;
     public int skillPointReward = 1;
     public float tickInterval = 1f;
+    Transform fortress;
 
     // Private components
     private NavMeshAgent agent;
@@ -33,6 +34,8 @@ public class EnemyUnit : MonoBehaviour
 
     void Start()
     {
+        GameObject fortressObj = GameObject.Find("Fortress");
+            if (fortressObj != null) fortress = fortressObj.transform;
         influenceValue = 1.0f;
         influenceRange = unitStats.attackRange;
         proximityRange = 2.0f;
@@ -56,7 +59,7 @@ public class EnemyUnit : MonoBehaviour
     {
         currentPosition = new Vector2(this.transform.position.x, this.transform.position.z);
         FollowPath();
-        //AttackTarget();
+        AttackTarget();
         tickTimer += Time.deltaTime;
         if (tickTimer >= tickInterval)
         {
@@ -69,7 +72,7 @@ public class EnemyUnit : MonoBehaviour
 
     void Tick()
     {
-        Debug.Log("Tick at " + Time.time);
+        //Debug.Log("Tick at " + Time.time);
         UpdateTarget();
         GetPathToTarget();
     }
@@ -157,7 +160,7 @@ public class EnemyUnit : MonoBehaviour
     void UpdateTarget()
     {
         Transform closest = GetComponent<Vision>().GetClosestTarget();
-        if(closest == null) return;
+        if(closest == null) closest = fortress;
         //Debug.Log(closest.position);
         if(currentOrder != null)
         {
@@ -201,20 +204,19 @@ public class EnemyUnit : MonoBehaviour
 
     void MoveTo(Vector3 position)
     {
-        if (agent.isActiveAndEnabled && agent.isOnNavMesh)
-        {
-            agent.SetDestination(position);
-        }
+        if (!agent.isActiveAndEnabled || !agent.isOnNavMesh) return;
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(position, out hit, 1.0f, NavMesh.AllAreas)) agent.SetDestination(hit.position); //Checking if position is movable
+        else currentIndex++; //else try the next position
     }
+
 
     void MoveTo(Vector2 position)
     {
-        if (agent.isActiveAndEnabled && agent.isOnNavMesh)
-        {
-            Vector3 destination = new Vector3(position.x, 0, position.y);
-            agent.SetDestination(destination);
-        }
+        MoveTo(new Vector3(position.x, 0f, position.y));
     }
+
     void RotateTowards(Vector3 position)
     {
         Vector3 directionToTarget = (position - transform.position).normalized;

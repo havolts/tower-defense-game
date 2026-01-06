@@ -1,31 +1,57 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public GameObject prefabToSpawn;
+    [System.Serializable]
+    public class Wave
+    {
+        public GameObject enemyPrefab;
+        public int count = 5;
+        public float spawnInterval = 1f;
+    }
+
     public Transform parentObject;
     public Transform spawnPoint;
-    public float spawnInterval = 2f;
+    public List<Wave> waves = new List<Wave>();
+    public float timeBetweenWaves = 5f;
 
-    private float timer;
+    private int currentWaveIndex = 0;
+    private bool spawningWave = false;
 
-    void Update()
+    void Start()
     {
+        StartCoroutine(SpawnWaves());
+    }
 
-        timer += Time.deltaTime;
-        if (timer >= spawnInterval)
+    IEnumerator SpawnWaves()
+    {
+        while (currentWaveIndex < waves.Count)
         {
-            Spawn();
-            timer = 0f;
+            Wave wave = waves[currentWaveIndex];
+            spawningWave = true;
+
+            for (int i = 0; i < wave.count; i++)
+            {
+                SpawnEnemy(wave.enemyPrefab);
+                yield return new WaitForSeconds(wave.spawnInterval);
+            }
+
+            spawningWave = false;
+            currentWaveIndex++;
+
+            yield return new WaitForSeconds(timeBetweenWaves);
         }
     }
 
-    void Spawn()
+    void SpawnEnemy(GameObject prefab)
     {
-        if (prefabToSpawn == null || spawnPoint == null) return;
+        if (prefab == null || spawnPoint == null) return;
 
-        GameObject clone = Instantiate(prefabToSpawn, spawnPoint.position, spawnPoint.rotation, parent: parentObject);
+        GameObject clone = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation, parentObject);
         GameController.Instance.enemyUnits.Add(clone);
+
         Health health = clone.GetComponent<Health>();
         if (health != null)
         {

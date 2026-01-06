@@ -1920,10 +1920,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8b4726a3d5bf40ce88f4a1eabe62a68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  prefabToSpawn: {fileID: 1312713966163632763, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
   parentObject: {fileID: 570836634}
   spawnPoint: {fileID: 697640582}
-  spawnInterval: 2
+  waves:
+  - enemyPrefab: {fileID: 1312713966163632763, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
+    count: 5
+    spawnInterval: 1
+  - enemyPrefab: {fileID: 1312713966163632763, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
+    count: 10
+    spawnInterval: 1
+  - enemyPrefab: {fileID: 1312713966163632763, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
+    count: 20
+    spawnInterval: 1
+  timeBetweenWaves: 10
 --- !u!4 &697640582
 Transform:
   m_ObjectHideFlags: 0
@@ -3225,6 +3234,10 @@ PrefabInstance:
       value: Goblin (1)
       objectReference: {fileID: 0}
     - target: {fileID: 2228143771837881226, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
+      propertyPath: fortess
+      value: 
+      objectReference: {fileID: 840273245}
+    - target: {fileID: 2228143771837881226, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
       propertyPath: influenceRange
       value: 5
       objectReference: {fileID: 0}
@@ -4036,6 +4049,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Goblin
       objectReference: {fileID: 0}
+    - target: {fileID: 2228143771837881226, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
+      propertyPath: fortess
+      value: 
+      objectReference: {fileID: 840273245}
     - target: {fileID: 2228143771837881226, guid: e44f5f6cd7e3347f7b6e022d6c6bcd3e, type: 3}
       propertyPath: drawGizmos
       value: 1

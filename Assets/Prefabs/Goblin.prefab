@@ -150,7 +150,8 @@ MonoBehaviour:
   proximityRange: 2
   skillPointReward: 1
   tickInterval: 1
-  drawGizmos: 1
+  fortess: {fileID: 0}
+  drawGizmos: 0
 --- !u!114 &1323339166105483594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184,4 +185,3 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   viewRadius: 100
-  visionAngle: 100
