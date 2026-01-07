@@ -114,7 +114,7 @@ public class FriendlyUnit : MonoBehaviour
         }
 
         // Attacks only if in range
-        if (!(stance == CombatStance.Passive))
+        if ((stance == CombatStance.Defensive))
         {
             if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
             {
@@ -156,7 +156,7 @@ public class FriendlyUnit : MonoBehaviour
     }
 }
 
-public enum CombatStance { Passive, Defensive, Aggressive }
+public enum CombatStance { Defensive, Aggressive }
 public enum OrderType { Move, Attack }
 
 public class Order
