@@ -90,22 +90,17 @@ public class EnemyUnit : MonoBehaviour
         Collider targetCollider = currentOrder.targetTransform.GetComponent<Collider>();
         if (targetCollider == null) return;
 
-        Vector3 closestPoint =
-            targetCollider.ClosestPoint(transform.position);
-
-        float distance =
-            Vector3.Distance(transform.position, closestPoint);
+        Vector3 closestPoint = targetCollider.ClosestPoint(transform.position);
+        float distance = Vector3.Distance(transform.position, closestPoint);
 
         if (distance <= unitStats.attackRange &&
             Time.time >= lastAttackTime + unitStats.attackCooldown)
         {
             animator.SetTrigger("Attack");
 
-            Health health =
-                currentOrder.targetTransform.GetComponent<Health>();
+            Health health = currentOrder.targetTransform.GetComponent<Health>();
 
-            if (health != null)
-                health.TakeDamage(unitStats.attackDamage);
+            health?.TakeDamage(unitStats.attackDamage);
 
             lastAttackTime = Time.time;
         }
