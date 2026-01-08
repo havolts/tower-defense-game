@@ -180,19 +180,34 @@ public class WorkingMap
 
     public Vector2Int GetHighestIndex(Vector2 unitPosition)
     {
+        Debug.Log("unit position: " + unitPosition);
         float highest = 0.0f;
         float distance = float.MaxValue;
         Vector2Int highestIndex = new Vector2Int(-1, -1);
+
+        int mapWidth = SafetyMap.Instance.gridSizeX;
+        int mapHeight = SafetyMap.Instance.gridSizeZ;
+
         for (int y = 0; y < currentDiameter; y++)
         {
+            int mapY = startIndex.y + y;
+            if (mapY < 0 || mapY >= mapHeight) continue;
+
             for (int x = 0; x < currentDiameter; x++)
             {
+
+                int mapX = startIndex.x + x;
+                if (mapX < 0 || mapX >= mapWidth) continue;
+
+
                 float current = GetCell(x, y);
                 if(current > highest)
                 {
                     highest = current;
                     highestIndex = new Vector2Int(startIndex.x + x, startIndex.y + y);
                     Vector2 currentCellPosition = SafetyMap.Instance.GetCell(startIndex.x + x, startIndex.y + y).position;
+                    Debug.Log("Current Cell Position: " + currentCellPosition);
+
                     distance = Vector2.Distance(unitPosition, currentCellPosition);
                 }
                 if(Mathf.Approximately(current,highest))

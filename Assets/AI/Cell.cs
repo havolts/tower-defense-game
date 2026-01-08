@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/*
+    This class stores all the data we need for the safetymap and pathfinding.
+*/
 public class Cell
 {
     public Vector2Int index;

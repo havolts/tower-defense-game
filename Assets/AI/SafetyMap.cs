@@ -2,6 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+    A grid of 'Cells'.
+    This has various functions that allow us to use it as a map for units to base decisions on - whether it be tactical positioning or pathfinding.
+*/
 public class SafetyMap : MonoBehaviour
 {
     public Cell[,] grid;
@@ -13,6 +17,7 @@ public class SafetyMap : MonoBehaviour
     int terrainSizeX;
     int terrainSizeZ;
 
+    // Singleton - we only ever want one map to be the only source of truth/information
     public static SafetyMap Instance { get; private set; }
 
     private void Awake()
@@ -20,6 +25,7 @@ public class SafetyMap : MonoBehaviour
         if (Instance == null) Instance = this; else Destroy(gameObject);
     }
 
+    //Sets up the grid/safety map as a new, clean grid.
     void SetupGrid()
     {
         terrainSizeX = (int)this.GetComponent<MeshRenderer>().bounds.size.x;
@@ -38,6 +44,8 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    // These are to simplify the concept of accessing/setting the data - while the data is in a row, column format due to being an array, grids are usually (or I usually) understood in the x and y format.
+    // X is the columns and so goes second while y is the rows and therefore goes first
     void SetCell(int x, int y, Cell cell)
     {
         grid[y, x] = cell;
@@ -58,6 +66,7 @@ public class SafetyMap : MonoBehaviour
         SetupGrid();
     }
 
+    // A helper function to convert any vector3s into the vector2 that I need - I do not care about y (height) values as I am using a 2d grid.
     public Vector2 ConvertVector3ToVector2(Vector3 vector)
     {
         return new Vector2(vector.x, vector.z);
@@ -65,7 +74,8 @@ public class SafetyMap : MonoBehaviour
 
     void FixedUpdate()
     {
-        ClearInfluence();
+        ClearInfluence(); // Clears all influence and proximity in grid
+        // Goes through every unit currently active and applies their influence (and proximity) to the grid.
         foreach(GameObject unit in controller.enemyUnits)
         {
             EnemyUnit enemy = unit.GetComponent<EnemyUnit>();
@@ -78,12 +88,13 @@ public class SafetyMap : MonoBehaviour
         {
             FriendlyUnit friendly = unit.GetComponent<FriendlyUnit>();
             Vector2 unitPosition = ConvertVector3ToVector2(unit.transform.position);
-            float facingAngle = Mathf.Atan2(friendly.transform.forward.x, friendly.transform.forward.z) * Mathf.Rad2Deg;
+            //float facingAngle = Mathf.Atan2(friendly.transform.forward.x, friendly.transform.forward.z) * Mathf.Rad2Deg;
 
             ApplyFriendlyInfluence(unitPosition, friendly.influenceValue, friendly.influenceRange);
         }
     }
 
+    // Clears all influence and proximity in grid
     void ClearInfluence()
     {
         foreach (Cell cell in grid)
@@ -94,6 +105,7 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    // Calculates the influence produced by an enemy unit and adds it to the relevant cells
     void ApplyEnemyInfluence(Vector2 enemyPosition, float influenceValue, float influenceRange)
     {
         Vector2Int enemyCell = ConvertWorldPositionToCellIndex(enemyPosition);
@@ -125,6 +137,7 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    // Calculates the influence produced by a friendly unit and adds it to the relevant cells
     void ApplyFriendlyInfluence(Vector2 friendlyPosition, float influenceValue, float influenceRange)
     {
         Vector2Int centerCell = ConvertWorldPositionToCellIndex(friendlyPosition);
@@ -161,6 +174,7 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    // Calculates the proximity produced by an enemy unit and adds it to the relevant cells
     void ApplyEnemyProximity(Vector2 friendlyPosition, float proximityValue, float proximityRange)
     {
         Vector2Int centerCell = ConvertWorldPositionToCellIndex(friendlyPosition);
@@ -197,6 +211,7 @@ public class SafetyMap : MonoBehaviour
         }
     }
 
+    // Applies friendly influence in a forward direction
     void ApplyDirectionFriendlyInfluence(Vector2 unitPosition, float angle, float influence)
     {
         int sector = ConvertAngleToSector(angle);
@@ -258,6 +273,7 @@ public class SafetyMap : MonoBehaviour
     }
 
 
+    // Helper functions to convert between world positions and the safety map's cell index
     public Vector2Int ConvertWorldPositionToCellIndex(Vector2 worldPosition)
     {
         float positionX = (worldPosition.x) + (terrainSizeX / 2);

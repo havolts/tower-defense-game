@@ -15,6 +15,7 @@ public class EnemyUnit : MonoBehaviour
 
     // Private components
     private NavMeshAgent agent;
+    private Animator animator;
     private Health health;
 
     // Working maps
@@ -34,6 +35,7 @@ public class EnemyUnit : MonoBehaviour
 
     void Start()
     {
+        animator = GetComponentInChildren<Animator>();
         GameObject fortressObj = GameObject.Find("Fortress");
             if (fortressObj != null) fortress = fortressObj.transform;
         influenceValue = 1.0f;
@@ -57,6 +59,7 @@ public class EnemyUnit : MonoBehaviour
 
     void Update()
     {
+        animator.SetFloat("Speed", agent.velocity.magnitude);
         currentPosition = new Vector2(this.transform.position.x, this.transform.position.z);
         FollowPath();
         AttackTarget();
@@ -75,16 +78,35 @@ public class EnemyUnit : MonoBehaviour
         //Debug.Log("Tick at " + Time.time);
         UpdateTarget();
         GetPathToTarget();
+        Debug.Log(currentOrder == null);
+        Debug.Log(currentOrder.targetTransform);
     }
 
     void AttackTarget()
     {
-        if (currentOrder == null) {return;}
-        if(currentOrder.targetTransform == null) {return;}
-        if (Vector3.Distance(currentOrder.targetTransform.position, this.transform.position) <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+        if (currentOrder == null) return;
+        if (currentOrder.targetTransform == null) return;
+
+        Collider targetCollider = currentOrder.targetTransform.GetComponent<Collider>();
+        if (targetCollider == null) return;
+
+        Vector3 closestPoint =
+            targetCollider.ClosestPoint(transform.position);
+
+        float distance =
+            Vector3.Distance(transform.position, closestPoint);
+
+        if (distance <= unitStats.attackRange &&
+            Time.time >= lastAttackTime + unitStats.attackCooldown)
         {
-            Health health = currentOrder.targetTransform.GetComponent<Health>();
-            if (health != null) health.TakeDamage(unitStats.attackDamage);
+            animator.SetTrigger("Attack");
+
+            Health health =
+                currentOrder.targetTransform.GetComponent<Health>();
+
+            if (health != null)
+                health.TakeDamage(unitStats.attackDamage);
+
             lastAttackTime = Time.time;
         }
     }
@@ -133,7 +155,7 @@ public class EnemyUnit : MonoBehaviour
         Vector2 targetPosition = new Vector2(currentOrder.targetTransform.position.x, currentOrder.targetTransform.position.z);
         Vector2Int targetIndex = SafetyMap.Instance.ConvertWorldPositionToCellIndex(targetPosition);
         Cell targetCell = SafetyMap.Instance.GetCell(targetIndex);
-        int radius = Mathf.FloorToInt(unitStats.attackRange); // NTS: Will need to be changed if cell size is changed
+        int radius = Mathf.FloorToInt(unitStats.attackRange/SafetyMap.Instance.cellSize);
         WorkingMap enemyProximity = new WorkingMap(radius*2+1);
         enemyProximity.Fill(targetIndex, radius, CellData.enemyProximity);
         enemyProximity.Subtract(GetOwnProximity());
@@ -141,21 +163,27 @@ public class EnemyUnit : MonoBehaviour
         workingMap.Fill(targetIndex, radius, CellData.friendlyInfluence);
         workingMap.Add(enemyProximity);
         workingMap.Inverse();
-        if(targetCell.friendlyInfluence == 0.0f) return; //making sure that the cell actually has a friendly presence.
 
         Vector2Int positionIndex = workingMap.GetHighestIndex(currentPosition);
         if(positionIndex == new Vector2Int(-1,-1)) return;
         Cell positionCell = SafetyMap.Instance.GetCell(positionIndex);
         Vector2 centreCellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(positionIndex);
+        Vector2 unitPosition = SafetyMap.Instance.ConvertVector3ToVector2(transform.position);
 
-        path = PathingSystem.Instance.FindPath(currentPosition, centreCellPosition);
+        // direction from target to unit (so the unit stays as far as possible)
+        Vector2 direction = (unitPosition - targetPosition).normalized;
+
+        // final attack-range position
+        Vector2 attackRangePosition = targetPosition + direction * unitStats.attackRange;
+
+        // clamp to the grid if needed
+        Vector2Int goalCellIndex = SafetyMap.Instance.ConvertWorldPositionToCellIndex(attackRangePosition);
+        Cell goalCell = SafetyMap.Instance.GetCell(goalCellIndex);
+
+        // path from current position to this attack-range position
+        path = PathingSystem.Instance.FindPath(unitPosition, attackRangePosition);
     }
 
-    // All cells are exactly at x.5,y.5 which means the unit stays outside of attack range
-    // This code gets the position where the cell's centre and the attack range meet and tells the unit to go there.
-    /*Vector2 direction = (centreCellPosition - targetPosition).normalized;
-    Vector2 BC = -direction * unitStats.attackRange;
-    Vector2 C = targetPosition + BC;*/
 
     void UpdateTarget()
     {
@@ -199,6 +227,7 @@ public class EnemyUnit : MonoBehaviour
             return;
         }
 
+        RotateTowards(new Vector3(targetPos.x, transform.position.y, targetPos.y));
         MoveTo(targetPos);
     }
 
