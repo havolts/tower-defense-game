@@ -6,7 +6,7 @@ public class FriendlyUnit : MonoBehaviour
 {
     public UnitStats unitStats;
     private NavMeshAgent agent;
-    public int level = 1;
+    private Animator animator;
     public GameObject fireboltPrefab; // or assign in inspector
 
     public List<Order> orders = new List<Order>();
@@ -19,16 +19,15 @@ public class FriendlyUnit : MonoBehaviour
 
     private float lastAttackTime;
 
-    private Renderer rend;
-
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.stoppingDistance = 0f;
 
+        animator = GetComponentInChildren<Animator>();
+
         maxHealth = GetComponent<Health>().stats.maxHealth;
-        rend = GetComponent<Renderer>();
 
         influenceValue = 5.0f;
         influenceRange = unitStats.attackRange*2;
@@ -37,13 +36,15 @@ public class FriendlyUnit : MonoBehaviour
     void Update()
     {
         health = GetComponent<Health>().currentHealth;
+        animator.SetFloat("Speed", agent.velocity.magnitude);
+
+
         if (currentOrder == null)
         {
             if (orders.Count > 0) // There are player-given orders
             {
                 currentOrder = orders[0];
                 orders.RemoveAt(0);
-                rend.material.color = Color.blue; // Player-given order
             }
             else // There are no player-given orders
             {
@@ -51,17 +52,18 @@ public class FriendlyUnit : MonoBehaviour
                 if(closest != null)
                 {
                     currentOrder = new Order(closest, false);
-                    rend.material.color = Color.green; // Self-given order
                 }
             }
         }
         if(currentOrder != null) ExecuteOrder(currentOrder);
     }
 
+    // Casts a firebolt at a target - the firebolt tracks target and follows till it hits.
     void CastFirebolt(Transform target)
     {
         GameObject bolt = Instantiate(fireboltPrefab, transform.position + Vector3.up * 1.5f, Quaternion.identity);
         Firebolt firebolt = bolt.GetComponent<Firebolt>();
+        animator.SetTrigger("Attack");
         firebolt.Launch(target, unitStats.attackDamage);
     }
 
@@ -99,7 +101,14 @@ public class FriendlyUnit : MonoBehaviour
         }
 
         Transform target = order.targetTransform;
-        float distance = Vector3.Distance(transform.position, target.position);
+        Collider col = target.GetComponent<Collider>();
+        if (col == null) return;
+
+        Vector3 closest = col.ClosestPoint(transform.position);
+        float distance = Vector3.Distance(transform.position, closest);
+
+
+        RotateTowards(target.position);
 
         // Move only if stance is aggressive/player order and target is out of range
         if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distance > unitStats.attackRange)
@@ -114,15 +123,13 @@ public class FriendlyUnit : MonoBehaviour
         }
 
         // Attacks only if in range
-        if ((stance == CombatStance.Defensive))
-        {
-            if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
-            {
-                CastFirebolt(target);
-                lastAttackTime = Time.time;
-            }
 
+        if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+        {
+            CastFirebolt(target);
+            lastAttackTime = Time.time;
         }
+
     }
 
     // Adds order to the list of orders
