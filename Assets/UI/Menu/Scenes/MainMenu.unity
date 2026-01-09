@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
+  m_IndirectSpecularColor: {r: 0.18028352, g: 0.22571376, b: 0.30692244, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -1747,8 +1747,15 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "How to Play\r\n\r\n- Enemies follow the path to the base\r\n- Defeat enemies
-    to earn gold\n\r\nControls\r\n- Left Click \u2013 \r\n- Right Click \u2013 \r"
+  m_text: "How to Play\r\n\r\n- Enemies spawn and attempt to attack wizards and your
+    fortress.\r\n- Defeat enemies to earn skill points.\n- Skill points can be used
+    to buy spells via the upgrade menu (bottom left screen button)\n- Spells can
+    be used by clicking on spell in hotbar (side of screen) and then pressing the
+    location you want a spell\n- To win you must earn 50 skill points and use the
+    speel to kill the dark wizard.\n- More wizards can be trained by pressing the
+    fortress and then pressing the button that pops up\n\r\nControls\r\n- Left Click
+    \u2013  Select\r\n- Right Click \u2013 Attack/Move order \n- Shift - Increase
+    panning speed\n- WASD/mouse near screen edge to pan camera"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1775,7 +1782,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 49.6
+  m_fontSize: 23.55
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -3018,10 +3025,6 @@ MonoBehaviour:
   spawnPoint: {fileID: 0}
   Fortress: {fileID: 793563344}
   cam: {fileID: 0}
-  stonePrefab: {fileID: 3014848442069970448, guid: 86c9649c73a204fb4b75e14ff397ed7b, type: 3}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 256
   playerSkillPoints: {fileID: 793563347}
 --- !u!114 &793563349
 MonoBehaviour:
