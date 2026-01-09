@@ -14,6 +14,7 @@ public class FriendlyUnit : MonoBehaviour
 
     private CombatStance stance = CombatStance.Aggressive;
 
+    Health healthComponent;
     public float health, maxHealth;
     public float influenceValue, influenceRange; // influenceRange is in world units (metres).
 
@@ -27,7 +28,8 @@ public class FriendlyUnit : MonoBehaviour
 
         animator = GetComponentInChildren<Animator>();
 
-        maxHealth = GetComponent<Health>().stats.maxHealth;
+        healthComponent = GetComponent<Health>();
+        maxHealth = healthComponent.stats.maxHealth;
 
         influenceValue = 5.0f;
         influenceRange = unitStats.attackRange*2;
@@ -35,7 +37,7 @@ public class FriendlyUnit : MonoBehaviour
 
     void Update()
     {
-        health = GetComponent<Health>().currentHealth;
+        health = healthComponent.currentHealth;
         animator.SetFloat("Speed", agent.velocity.magnitude);
 
 
@@ -61,10 +63,12 @@ public class FriendlyUnit : MonoBehaviour
     // Casts a firebolt at a target - the firebolt tracks target and follows till it hits.
     void CastFirebolt(Transform target)
     {
+        agent.enabled = false;
         GameObject bolt = Instantiate(fireboltPrefab, transform.position + Vector3.up * 1.5f, Quaternion.identity);
         Firebolt firebolt = bolt.GetComponent<Firebolt>();
         animator.SetTrigger("Attack");
         firebolt.Launch(target, unitStats.attackDamage);
+        agent.enabled = true;
     }
 
 
@@ -104,33 +108,38 @@ public class FriendlyUnit : MonoBehaviour
         Collider col = target.GetComponent<Collider>();
         if (col == null) return;
 
-        Vector3 closest = col.ClosestPoint(transform.position);
-        float distance = Vector3.Distance(transform.position, closest);
+        Vector3 targetPosition = target.position;
+        Vector3 directionToTarget = targetPosition - transform.position;
+        float distanceToTarget = directionToTarget.magnitude;
+        Vector3 directionNormalized = directionToTarget / Mathf.Max(distanceToTarget, 0.001f);
 
+        RotateTowards(targetPosition);
 
-        RotateTowards(target.position);
-
-        // Move only if stance is aggressive/player order and target is out of range
-        if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distance > unitStats.attackRange)
+        // Move if out of range and aggressive/player order
+        if ((stance == CombatStance.Aggressive || order.isPlayerOrder) && distanceToTarget > unitStats.attackRange)
         {
-            Vector3 direction = (target.position - transform.position).normalized;
-            Vector3 destination = target.position - direction * unitStats.attackRange;
+            Vector3 attackDestination = targetPosition - directionNormalized * unitStats.attackRange;
 
             NavMeshHit hit;
-            if (NavMesh.SamplePosition(destination, out hit, 1.0f, NavMesh.AllAreas)) destination = hit.position;
-            agent.SetDestination(destination);
-            RotateTowards(target.position);
+            if (NavMesh.SamplePosition(attackDestination, out hit, 1f, NavMesh.AllAreas))
+                attackDestination = hit.position;
+
+            agent.SetDestination(attackDestination);
+            RotateTowards(targetPosition);
         }
 
-        // Attacks only if in range
-
-        if (distance <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
+        // Attack if in range and can see the target
+        if (distanceToTarget <= unitStats.attackRange && Time.time >= lastAttackTime + unitStats.attackCooldown)
         {
-            CastFirebolt(target);
-            lastAttackTime = Time.time;
+            Vision vision = GetComponent<Vision>();
+            if (vision != null && vision.CanSee(target))
+            {
+                CastFirebolt(target);
+                lastAttackTime = Time.time;
+            }
         }
-
     }
+
 
     // Adds order to the list of orders
     public void AddOrder(Order order, bool append)

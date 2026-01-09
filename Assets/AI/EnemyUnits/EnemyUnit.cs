@@ -78,8 +78,8 @@ public class EnemyUnit : MonoBehaviour
         //Debug.Log("Tick at " + Time.time);
         UpdateTarget();
         GetPathToTarget();
-        Debug.Log(currentOrder == null);
-        Debug.Log(currentOrder.targetTransform);
+        //Debug.Log(currentOrder == null);
+        //Debug.Log(currentOrder.targetTransform);
     }
 
     void AttackTarget()
@@ -145,13 +145,26 @@ public class EnemyUnit : MonoBehaviour
 
     void GetPathToTarget()
     {
-        if (currentOrder == null) {return;}
-        if(currentOrder.targetTransform == null) return;
-        Vector2 targetPosition = new Vector2(currentOrder.targetTransform.position.x, currentOrder.targetTransform.position.z);
+        if (currentOrder == null || currentOrder.targetTransform == null) return;
+
+        Vector3 targetWorldPos = currentOrder.targetTransform.position;
+        Vector2 unitPosition = SafetyMap.Instance.ConvertVector3ToVector2(transform.position);
+        Vector2 targetPosition = new Vector2(targetWorldPos.x, targetWorldPos.z);
+
+        // If target is beyond influence range, use NavMesh directly
+        if (Vector2.Distance(unitPosition, targetPosition) > influenceRange)
+        {
+            agent.SetDestination(targetWorldPos);
+            path.Clear(); // Clear any existing working map path
+            return;
+        }
+
+        // Otherwise, use your working map pathfinding
         Vector2Int targetIndex = SafetyMap.Instance.ConvertWorldPositionToCellIndex(targetPosition);
         Cell targetCell = SafetyMap.Instance.GetCell(targetIndex);
-        int radius = Mathf.FloorToInt(unitStats.attackRange/SafetyMap.Instance.cellSize);
-        WorkingMap enemyProximity = new WorkingMap(radius*2+1);
+        int radius = Mathf.FloorToInt(unitStats.attackRange / SafetyMap.Instance.cellSize);
+
+        WorkingMap enemyProximity = new WorkingMap(radius * 2 + 1);
         enemyProximity.Fill(targetIndex, radius, CellData.enemyProximity);
         enemyProximity.Subtract(GetOwnProximity());
 
@@ -159,25 +172,16 @@ public class EnemyUnit : MonoBehaviour
         workingMap.Add(enemyProximity);
         workingMap.Inverse();
 
-        Vector2Int positionIndex = workingMap.GetHighestIndex(currentPosition);
-        if(positionIndex == new Vector2Int(-1,-1)) return;
-        Cell positionCell = SafetyMap.Instance.GetCell(positionIndex);
-        Vector2 centreCellPosition = SafetyMap.Instance.ConvertCellIndexToWorldPosition(positionIndex);
-        Vector2 unitPosition = SafetyMap.Instance.ConvertVector3ToVector2(transform.position);
+        Vector2Int positionIndex = workingMap.GetHighestIndex(unitPosition);
+        if (positionIndex == new Vector2Int(-1, -1)) return;
 
-        // direction from target to unit (so the unit stays as far as possible)
         Vector2 direction = (unitPosition - targetPosition).normalized;
-
-        // final attack-range position
         Vector2 attackRangePosition = targetPosition + direction * unitStats.attackRange;
 
-        // clamp to the grid if needed
-        Vector2Int goalCellIndex = SafetyMap.Instance.ConvertWorldPositionToCellIndex(attackRangePosition);
-        Cell goalCell = SafetyMap.Instance.GetCell(goalCellIndex);
-
-        // path from current position to this attack-range position
         path = PathingSystem.Instance.FindPath(unitPosition, attackRangePosition);
     }
+
+
 
 
     void UpdateTarget()
@@ -238,8 +242,14 @@ public class EnemyUnit : MonoBehaviour
 
     void MoveTo(Vector2 position)
     {
-        MoveTo(new Vector3(position.x, 0f, position.y));
+        Vector3 target = new Vector3(position.x, transform.position.y, position.y);
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(target, out hit, 5.0f, NavMesh.AllAreas))
+            agent.SetDestination(hit.position);
+        else
+            currentIndex++;
     }
+
 
     void RotateTowards(Vector3 position)
     {

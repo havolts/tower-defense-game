@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9aeabc4eba85440c2a5958f328093451, type: 3}
-  m_Name: WizardStats
+  m_Name: GoblinStats
   m_EditorClassIdentifier: 
-  attackDamage: 10
+  attackDamage: 5
   attackCooldown: 1
-  attackRange: 10
-  movementSpeed: 20
+  attackRange: 3
+  movementSpeed: 30

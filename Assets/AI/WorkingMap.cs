@@ -180,7 +180,7 @@ public class WorkingMap
 
     public Vector2Int GetHighestIndex(Vector2 unitPosition)
     {
-        Debug.Log("unit position: " + unitPosition);
+        //Debug.Log("unit position: " + unitPosition);
         float highest = 0.0f;
         float distance = float.MaxValue;
         Vector2Int highestIndex = new Vector2Int(-1, -1);
@@ -206,7 +206,7 @@ public class WorkingMap
                     highest = current;
                     highestIndex = new Vector2Int(startIndex.x + x, startIndex.y + y);
                     Vector2 currentCellPosition = SafetyMap.Instance.GetCell(startIndex.x + x, startIndex.y + y).position;
-                    Debug.Log("Current Cell Position: " + currentCellPosition);
+                    //Debug.Log("Current Cell Position: " + currentCellPosition);
 
                     distance = Vector2.Distance(unitPosition, currentCellPosition);
                 }

@@ -56,6 +56,14 @@ public class Vision : MonoBehaviour
         }
     }
 
+    public bool CanSee(Transform target)
+    {
+        Vector3 dir = (target.position - transform.position).normalized;
+        float dist = Vector3.Distance(transform.position, target.position);
+        return !Physics.Raycast(transform.position, dir, dist, obstacleMask);
+    }
+
+
     //To be removed with final build
     void OnDrawGizmos()
     {

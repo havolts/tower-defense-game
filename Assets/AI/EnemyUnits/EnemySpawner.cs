@@ -18,7 +18,6 @@ public class EnemySpawner : MonoBehaviour
     public float timeBetweenWaves = 5f;
 
     private int currentWaveIndex = 0;
-    private bool spawningWave = false;
 
     void Start()
     {
@@ -30,7 +29,6 @@ public class EnemySpawner : MonoBehaviour
         while (currentWaveIndex < waves.Count)
         {
             Wave wave = waves[currentWaveIndex];
-            spawningWave = true;
 
             for (int i = 0; i < wave.count; i++)
             {
@@ -38,7 +36,6 @@ public class EnemySpawner : MonoBehaviour
                 yield return new WaitForSeconds(wave.spawnInterval);
             }
 
-            spawningWave = false;
             currentWaveIndex++;
 
             yield return new WaitForSeconds(timeBetweenWaves);

@@ -28,8 +28,11 @@ public class SafetyMap : MonoBehaviour
     //Sets up the grid/safety map as a new, clean grid.
     void SetupGrid()
     {
-        terrainSizeX = (int)this.GetComponent<MeshRenderer>().bounds.size.x;
-        terrainSizeZ = (int)this.GetComponent<MeshRenderer>().bounds.size.z;
+        Terrain terrain = GetComponent<Terrain>();
+        if (terrain == null) { Debug.Log("NO terrain"); return; }
+        Vector3 terrainSize = terrain.terrainData.size;
+        terrainSizeX = Mathf.RoundToInt(terrainSize.x);
+        terrainSizeZ = Mathf.RoundToInt(terrainSize.z);
 
         gridSizeX = terrainSizeX / cellSize;
         gridSizeZ = terrainSizeZ / cellSize;
