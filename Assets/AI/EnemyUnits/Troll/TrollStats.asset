@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: TrollStats
   m_EditorClassIdentifier: 
   attackDamage: 20
-  attackCooldown: 5
-  attackRange: 2
-  movementSpeed: 15
+  attackCooldown: 3
+  attackRange: 4
+  movementSpeed: 3

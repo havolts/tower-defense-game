@@ -11,65 +11,53 @@ public class FortressMenu : MonoBehaviour
     public GameObject spawnPoint;
     public GameObject Fortress;
     public Camera cam;
-    public GameObject stonePrefab;
-    public LayerMask groundLayer;
-
     public SkillPoints playerSkillPoints;
 
-    private bool buttonsVisible = false;
-    private bool placingStone = false;
+    private bool buttonVisible = false;
 
-    private void Update()
+    void Update()
     {
         if (!Input.GetMouseButtonDown(0)) return;
         if (EventSystem.current.IsPointerOverGameObject()) return;
 
-        if (placingStone)
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
+            if (hit.collider.gameObject == Fortress)
             {
-                Instantiate(stonePrefab, hit.point, Quaternion.identity);
-                //Debug.Log("Stone placed at " + hit.point);
+                if (!buttonVisible) ShowButton();
             }
-            else
+            else if (buttonVisible)
             {
-                Debug.Log("Must click on the ground.");
-            }
-            placingStone = false;
-            return;
-        }
-
-        Ray rayClick = cam.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(rayClick, out RaycastHit hitClick))
-        {
-            if (hitClick.collider.gameObject == Fortress)
-            {
-                if (!buttonsVisible) ShowButtons();
-            }
-            else
-            {
-                if (buttonsVisible) HideButtons();
+                HideButton();
             }
         }
-        else
+        else if (buttonVisible)
         {
-            if (buttonsVisible) HideButtons();
+            HideButton();
         }
     }
 
-    void ShowButtons()
+    void ShowButton()
     {
         ClearPanel();
-        CreateButton("Summon Wizard (2 SP)", () => AttemptAction(2, SpawnWizard));
-        CreateButton("Place Stone Barrier (4 SP)", () => AttemptAction(4, PlaceStone));
-        buttonsVisible = true;
+
+        GameObject btnObj = Instantiate(buttonPrefab, panel.transform);
+        btnObj.transform.SetParent(panel.transform, false);
+
+        // Ensure correct scale
+        btnObj.transform.localScale = Vector3.one;
+
+        Button button = btnObj.GetComponent<Button>();
+        button.onClick.AddListener(TrySpawnWizard);
+
+        buttonVisible = true;
     }
 
-    void HideButtons()
+    void HideButton()
     {
         ClearPanel();
-        buttonsVisible = false;
+        buttonVisible = false;
     }
 
     void ClearPanel()
@@ -78,48 +66,16 @@ public class FortressMenu : MonoBehaviour
             Destroy(child.gameObject);
     }
 
-    void CreateButton(string label, UnityEngine.Events.UnityAction action)
+    void TrySpawnWizard()
     {
-        GameObject obj = Instantiate(buttonPrefab, panel.transform);
-        obj.transform.SetParent(panel.transform, false);
-
-        Button button = obj.GetComponent<Button>();
-        Text text = obj.GetComponentInChildren<Text>();
-        text.text = label;
-        button.onClick.AddListener(action);
-    }
-
-    void AttemptAction(int cost, UnityEngine.Events.UnityAction action)
-    {
-        Debug.Log(playerSkillPoints.points);
-        Button clickedButton = null;
-
-        foreach (Transform child in panel.transform)
+        if (playerSkillPoints.points >= 2)
         {
-            Button btn = child.GetComponent<Button>();
-            if (btn != null && btn.onClick.GetPersistentEventCount() > 0)
-            {
-                for (int i = 0; i < btn.onClick.GetPersistentEventCount(); i++)
-                {
-                    var targetMethod = btn.onClick.GetPersistentMethodName(i);
-                    if (targetMethod == action.Method.Name)
-                    {
-                        clickedButton = btn;
-                        break;
-                    }
-                }
-            }
-            if (clickedButton != null) break;
-        }
-
-        if (playerSkillPoints.points >= cost)
-        {
-            playerSkillPoints.Add(-cost);
-            action.Invoke();
+            playerSkillPoints.Add(-2);
+            Instantiate(wizardPrefab, spawnPoint.transform.position, Quaternion.identity);
         }
         else
         {
-            if (clickedButton != null) StartCoroutine(FlashButtonRed(clickedButton));
+            StartCoroutine(FlashButtonRed(panel.GetComponentInChildren<Button>()));
         }
     }
 
@@ -129,17 +85,5 @@ public class FortressMenu : MonoBehaviour
         button.image.color = Color.red;
         yield return new WaitForSeconds(1f);
         button.image.color = original;
-    }
-
-    void SpawnWizard()
-    {
-        Instantiate(wizardPrefab, spawnPoint.transform.position, Quaternion.identity);
-        //Debug.Log("Wizard spawned.");
-    }
-
-    void PlaceStone()
-    {
-        //Debug.Log("Click on the battlefield to place stone.");
-        placingStone = true;
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class GameController : MonoBehaviour
 {
@@ -41,5 +42,25 @@ public class GameController : MonoBehaviour
     void OnUnitDied(GameObject unit, List<GameObject> unitList)
     {
         unitList.Remove(unit);
+    }
+
+    public void StopAllUnits()
+    {
+        // Stop friendly units
+        foreach (GameObject unit in friendlyUnits)
+        {
+            NavMeshAgent agent = unit.GetComponent<NavMeshAgent>();
+            if (agent != null) agent.enabled = false;
+            unit.GetComponent<FriendlyUnit>().frozen = true;
+        }
+
+        // Stop enemy units
+        foreach (GameObject unit in enemyUnits)
+        {
+            NavMeshAgent agent = unit.GetComponent<NavMeshAgent>();
+            if (agent != null) agent.enabled = false;
+            unit.GetComponent<EnemyUnit>().frozen = true;
+        }
+        
     }
 }
