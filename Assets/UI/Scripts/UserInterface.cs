@@ -29,8 +29,14 @@ public class UserInterface : MonoBehaviour
 
     bool panelOpen = false;
 
+    public GameObject fortress;
+    Health fortressHealth;
+    float fortressCurrentHealth;
+
     void Start()
     {
+        fortressHealth = fortress.GetComponent<Health>();
+        fortressCurrentHealth = fortressHealth.currentHealth;
         panel.SetActive(false);
         upgradePanelToggle.onClick.AddListener(TogglePanel);
 
@@ -61,12 +67,32 @@ public class UserInterface : MonoBehaviour
         }
     }
 
-
-
     void Update()
     {
+        fortressCurrentHealth = fortressHealth.currentHealth;
+        DisableSpells();
         points.text = SkillPoints.Instance.points.ToString();
         UpdateCooldownVisuals();
+    }
+
+    void DisableSpells()
+    {
+        if(fortressCurrentHealth < ((fortressHealth.stats.maxHealth/4)*3))
+        {
+            meteorSpellButton.SetActive(false);
+        }
+        if(fortressCurrentHealth < ((fortressHealth.stats.maxHealth/4)*2))
+        {
+            suspendSpellButton.SetActive(false);
+        }
+        if(fortressCurrentHealth < ((fortressHealth.stats.maxHealth/4)))
+        {
+            disperseSpellButton.SetActive(false);
+        }
+        if(fortressCurrentHealth < ((fortressHealth.stats.maxHealth/5)))
+        {
+            stoneSpellButton.SetActive(false);
+        }
     }
 
     void UpdateCooldownVisuals()
@@ -148,6 +174,7 @@ public class UserInterface : MonoBehaviour
     {
         if (SkillPoints.Instance.points >= endgameCost)
         {
+            SkillPoints.Instance.Subtract(endgameCost);
             panel.SetActive(false);
             GameController.Instance.StopAllUnits();
             var spell = Instantiate(endGameSpellPrefab);

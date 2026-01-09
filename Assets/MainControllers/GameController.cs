@@ -10,6 +10,12 @@ public class GameController : MonoBehaviour
     public List<GameObject> friendlyUnits = new List<GameObject>();
     public List<GameObject> enemyUnits = new List<GameObject>();
 
+    public GameObject panel;
+    public GameObject endGame;
+    public CameraController cam;
+
+    public GameObject fortress;
+
     private void Awake()
     {
         if (Instance == null) Instance = this; else Destroy(gameObject);
@@ -37,6 +43,20 @@ public class GameController : MonoBehaviour
                 health.Died += () => OnUnitDied(enemyUnit.gameObject, enemyUnits);
             }
         }
+    }
+
+    public void Update()
+    {
+        if(fortress == null) EndGame();
+    }
+
+    void EndGame()
+    {
+        panel.SetActive(false);
+        GameController.Instance.StopAllUnits();
+        cam.frozen = true;
+        endGame.SetActive(true);
+
     }
 
     void OnUnitDied(GameObject unit, List<GameObject> unitList)
